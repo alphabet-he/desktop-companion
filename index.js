@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -12,7 +12,7 @@ let currentConfigPath = null;
 function getRootDir() {
   const isPackaged = app.isPackaged;
   if (!isPackaged) return __dirname;
-  
+
   if (process.platform === 'darwin') {
     return path.resolve(path.dirname(app.getPath('exe')), '../../..');
   }
@@ -22,7 +22,7 @@ function getRootDir() {
 function scanConfigs() {
   const dir = getRootDir();
   const files = fs.readdirSync(dir).filter(file => file.endsWith('.json'));
-  
+
   const configs = [];
   files.forEach(file => {
     try {
@@ -47,10 +47,10 @@ function loadConfig(filePath) {
     const rawData = fs.readFileSync(filePath, 'utf8');
     return JSON.parse(rawData);
   } catch (err) {
-    return { 
-      img_size: { width: 100, height: 100 }, 
-      img_path: "img.png", 
-      dialogue: ["Error loading config"] 
+    return {
+      img_size: { width: 100, height: 100 },
+      img_path: "img.png",
+      dialogue: ["Error loading config"]
     };
   }
 }
@@ -70,8 +70,8 @@ function createWindow() {
 
   // Initial load to get size
   const config = currentConfigPath ? loadConfig(currentConfigPath) : { img_size: { width: 100, height: 100 } };
-  
-  const winWidth = (config.img_size?.width || 100) + 200; 
+
+  const winWidth = (config.img_size?.width || 100) + 200;
   const winHeight = (config.img_size?.height || 100) + 150;
 
   const win = new BrowserWindow({
@@ -100,7 +100,7 @@ function createWindow() {
     if (!currentConfigPath) return;
 
     const freshConfig = loadConfig(currentConfigPath);
-    
+
     // Resize window dynamically based on the new character's size
     const newWidth = (freshConfig.img_size.width || 100) + 200;
     const newHeight = (freshConfig.img_size.height || 100) + 150;
@@ -140,7 +140,7 @@ const dataFilePath = path.join(getRootDir(), 'mascot_data.json');
 function loadData() {
   try {
     return JSON.parse(fs.readFileSync(dataFilePath, 'utf8'));
-  } catch(e) {
+  } catch (e) {
     return { clicks: {}, inputs: [] };
   }
 }
@@ -183,6 +183,7 @@ function openDashboard() {
   if (dashboardWin) { dashboardWin.focus(); return; }
   dashboardWin = new BrowserWindow({
     width: 600, height: 500,
+    frame: false,
     webPreferences: { nodeIntegration: true, contextIsolation: false }
   });
   dashboardWin.loadFile('dashboard.html');
@@ -194,6 +195,7 @@ function openEditor() {
   if (editorWin) { editorWin.focus(); return; }
   editorWin = new BrowserWindow({
     width: 600, height: 600,
+    frame: false,
     webPreferences: { nodeIntegration: true, contextIsolation: false }
   });
   editorWin.loadFile('editor.html');
@@ -202,19 +204,19 @@ function openEditor() {
 
 ipcMain.handle('get-data', () => loadData());
 ipcMain.handle('get-current-config', () => {
-    return { path: currentConfigPath, data: currentConfigPath ? loadConfig(currentConfigPath) : {} };
+  return { path: currentConfigPath, data: currentConfigPath ? loadConfig(currentConfigPath) : {} };
 });
 ipcMain.handle('save-config', (event, { confPath, confData }) => {
-    try {
-        fs.writeFileSync(confPath, JSON.stringify(confData, null, 2), 'utf8');
-        // Reload all main mascot windows
-        BrowserWindow.getAllWindows().forEach(w => {
-            if (w !== dashboardWin && w !== editorWin) w.reload();
-        });
-        return { success: true };
-    } catch (e) {
-        return { success: false, error: e.message };
-    }
+  try {
+    fs.writeFileSync(confPath, JSON.stringify(confData, null, 2), 'utf8');
+    // Reload all main mascot windows
+    BrowserWindow.getAllWindows().forEach(w => {
+      if (w !== dashboardWin && w !== editorWin) w.reload();
+    });
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
 });
 
 // --- 3. DYNAMIC RIGHT-CLICK MENU ---
@@ -256,21 +258,11 @@ ipcMain.on('show-context-menu', (event) => {
 });
 
 // --- 4. DRAG LOGIC ---
-let dragOffset = { x: 0, y: 0 };
-
-ipcMain.on('drag-start', (event, cursor) => {
+ipcMain.on('drag-move', (event, delta) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   if (!win) return;
-  const winPos = win.getPosition();
-  dragOffset = { x: cursor.x - winPos[0], y: cursor.y - winPos[1] };
-});
-
-ipcMain.on('drag-move', (event, cursor) => {
-  const win = BrowserWindow.fromWebContents(event.sender);
-  if (!win) return;
-  const newX = cursor.x - dragOffset.x;
-  const newY = cursor.y - dragOffset.y;
-  win.setPosition(Math.round(newX), Math.round(newY));
+  const [x, y] = win.getPosition();
+  win.setPosition(Math.round(x + delta.x), Math.round(y + delta.y), false);
 });
 
 ipcMain.on('set-ignore-mouse-events', (event, ignore, options) => {

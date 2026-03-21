@@ -1,45 +1,264 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
-    <title>Mascot Data Dashboard</title>
+    <title>Data Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: #f9f9f9; color: #333; }
-        h1 { font-size: 24px; color: #444; border-bottom: 2px solid #ddd; padding-bottom: 5px; }
-        h2 { font-size: 18px; color: #555; margin-top: 20px; }
-        .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        ul { list-style: none; padding: 0; }
-        li { padding: 8px 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
-        li:last-child { border-bottom: none; }
-        .time { color: #888; font-size: 12px; }
-        .text { font-weight: 500; }
+        html {
+            background-color: #f6d365; /* Default background color */
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: transparent;
+            color: #333;
+            min-height: 100vh;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Frameless Title Bar */
+        #title-bar {
+            height: 32px;
+            background: rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            -webkit-app-region: drag;
+            padding: 0 8px;
+            position: relative;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        #close-btn {
+            width: 14px;
+            height: 14px;
+            background: #ff5f57;
+            border-radius: 50%;
+            cursor: pointer;
+            -webkit-app-region: no-drag;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: transparent;
+            font-weight: 800;
+        }
+
+        #close-btn:hover {
+            color: rgba(100, 0, 0, 0.7);
+            background: #ff5f57;
+        }
+
+        #content {
+            padding: 20px;
+            flex-grow: 1;
+            overflow-y: auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Centered Background Image */
+        #bg-image-container {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        #bg-image {
+            object-fit: contain;
+            opacity: 1; /* Changed to 1, manageable via config */
+        }
+
+        /* Glass layer to ensure text readability */
+        #glass-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(8px);
+            z-index: 0;
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #111;
+            margin-top: 0;
+            margin-bottom: 25px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        h2 {
+            font-size: 18px;
+            color: #222;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.7);
+            padding: 24px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            margin-bottom: 25px;
+            backdrop-filter: blur(12px);
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 250px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+
+        /* Hide All Scrollbars Globally */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+        * {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        li {
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.5);
+            margin-bottom: 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.2s;
+        }
+
+        li:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: scale(1.02);
+        }
+
+        .text {
+            font-weight: 600;
+            font-size: 15px;
+            color: #111;
+        }
+
+        .time {
+            color: #555;
+            font-size: 11px;
+            font-weight: 700;
+            background: rgba(0, 0, 0, 0.06);
+            padding: 5px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
     </style>
 </head>
-<body>
-    <h1>Mascot Dashboard</h1>
 
-    <div class="card">
-        <h2>Hourly Clicks</h2>
-        <ul id="clicks-list">Loading clicks...</ul>
+<body>
+    <div id="title-bar">
+        <div id="close-btn" onclick="window.close()">×</div>
     </div>
 
-    <div class="card">
-        <h2>User Inputs</h2>
-        <ul id="inputs-list">Loading inputs...</ul>
+    <div id="bg-image-container">
+        <img id="bg-image" src="" style="display: none;">
+    </div>
+    <div id="glass-layer"></div>
+
+    <div id="content">
+        <h1>Dashboard</h1>
+
+        <div class="card">
+            <h2>Hourly Clicks</h2>
+            <ul id="clicks-list">Loading clicks...</ul>
+        </div>
+
+        <div class="card">
+            <h2>User Inputs</h2>
+            <ul id="inputs-list">Loading inputs...</ul>
+        </div>
     </div>
 
     <script>
         const { ipcRenderer } = require('electron');
+        const path = require('path');
 
         async function loadData() {
             const data = await ipcRenderer.invoke('get-data');
+            const { path: confPath, data: confData } = await ipcRenderer.invoke('get-current-config');
             
+            const panelConfig = confData.dashboard_panel || {};
+
+            // 1. Set background color (on HTML so it stays visible during scroll)
+            if (panelConfig.panel_bg_color) {
+                document.documentElement.style.backgroundColor = panelConfig.panel_bg_color;
+            }
+
+            // 2. Set centered background image and size
+            if (panelConfig.panel_bg_image && confPath) {
+                const rootDir = path.dirname(confPath);
+                const fullImgPath = path.join(rootDir, panelConfig.panel_bg_image);
+                const bgImg = document.getElementById('bg-image');
+                bgImg.src = `file:///${fullImgPath.replace(/\\/g, '/')}`; // Added extra slash for proper file URI
+                bgImg.style.display = 'block';
+
+                if (panelConfig.panel_bg_image_opacity !== undefined) {
+                    bgImg.style.opacity = panelConfig.panel_bg_image_opacity;
+                }
+                
+                if (panelConfig.panel_bg_image_size) {
+                    // Support both object {width, height} and simple values
+                    if (typeof panelConfig.panel_bg_image_size === 'object') {
+                        if (panelConfig.panel_bg_image_size.width) bgImg.style.width = panelConfig.panel_bg_image_size.width + 'px';
+                        if (panelConfig.panel_bg_image_size.height) bgImg.style.height = panelConfig.panel_bg_image_size.height + 'px';
+                    } else {
+                        bgImg.style.width = typeof panelConfig.panel_bg_image_size === 'number' ? 
+                            panelConfig.panel_bg_image_size + 'px' : panelConfig.panel_bg_image_size;
+                    }
+                } else {
+                    bgImg.style.width = '200px'; // Default size
+                }
+            }
+
+            // 3. Customize Glass Layer
+            const glassLayer = document.getElementById('glass-layer');
+            if (panelConfig.glass_layer_blur !== undefined) {
+                // Ensure backdrop filter is correctly formatted
+                const blurVal = typeof panelConfig.glass_layer_blur === 'number' ? `${panelConfig.glass_layer_blur}px` : panelConfig.glass_layer_blur;
+                glassLayer.style.backdropFilter = `blur(${blurVal})`;
+            }
+
             // Render Clicks
             const clicksList = document.getElementById('clicks-list');
             clicksList.innerHTML = '';
             const hours = Object.keys(data.clicks).sort().reverse();
             if (hours.length === 0) {
-                clicksList.innerHTML = '<li>No clicks recorded yet.</li>';
+                clicksList.innerHTML = '<li><span class="text" style="color:#888;">No clicks recorded yet.</span></li>';
             } else {
                 hours.forEach(hour => {
                     const li = document.createElement('li');
@@ -51,13 +270,12 @@
             // Render Inputs
             const inputsList = document.getElementById('inputs-list');
             inputsList.innerHTML = '';
-            const inputs = data.inputs.reverse(); // Newest first
+            const inputs = data.inputs.reverse();
             if (inputs.length === 0) {
-                inputsList.innerHTML = '<li>No inputs recorded yet.</li>';
+                inputsList.innerHTML = '<li><span class="text" style="color:#888;">No inputs recorded yet.</span></li>';
             } else {
                 inputs.forEach(input => {
                     const li = document.createElement('li');
-                    // Display our custom string directly
                     li.innerHTML = `<span class="text">${input.text}</span> <span class="time">${input.time}</span>`;
                     inputsList.appendChild(li);
                 });
@@ -67,4 +285,5 @@
         loadData();
     </script>
 </body>
+
 </html>

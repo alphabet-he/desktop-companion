@@ -1,54 +1,264 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
     <title>Dialogue Editor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: #f9f9f9; color: #333; }
-        h1 { font-size: 24px; color: #444; border-bottom: 2px solid #ddd; padding-bottom: 5px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px; }
-        textarea { width: 100%; height: 80px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-family: inherit; resize: vertical; box-sizing: border-box; }
-        .help-text { font-size: 12px; color: #777; margin-top: 2px; }
-        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background 0.2s; }
-        button:hover { background: #0056b3; }
-        #status { margin-left: 10px; font-weight: bold; color: green; opacity: 0; transition: opacity 0.5s; }
+        html {
+            background-color: #a18cd1; /* Default background color */
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: transparent;
+            color: #333;
+            min-height: 100vh;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Frameless Title Bar */
+        #title-bar {
+            height: 32px;
+            background: rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            -webkit-app-region: drag;
+            padding: 0 8px;
+            position: relative;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        #close-btn {
+            width: 14px;
+            height: 14px;
+            background: #ff5f57;
+            border-radius: 50%;
+            cursor: pointer;
+            -webkit-app-region: no-drag;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: transparent;
+            font-weight: 800;
+        }
+
+        #close-btn:hover {
+            color: rgba(100, 0, 0, 0.7);
+            background: #ff5f57;
+        }
+
+        #content {
+            padding: 25px;
+            flex-grow: 1;
+            overflow-y: auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Centered Background Image */
+        #bg-image-container {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        #bg-image {
+            object-fit: contain;
+            opacity: 1; /* Configurable */
+        }
+
+        /* Glass layer */
+        #glass-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(8px);
+            z-index: 0;
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #111;
+            margin-top: 0;
+            margin-bottom: 5px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .help-text {
+            font-size: 13px;
+            color: #555;
+            margin-top: 0;
+            margin-bottom: 25px;
+            font-weight: 500;
+        }
+
+        .form-group {
+            background: rgba(255, 255, 255, 0.5);
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            margin-bottom: 20px;
+            backdrop-filter: blur(12px);
+            transition: transform 0.2s ease;
+        }
+
+        .form-group:hover {
+            transform: translateY(-2px);
+        }
+
+        label {
+            display: block;
+            font-weight: 700;
+            margin-bottom: 12px;
+            font-size: 15px;
+            color: #222;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 90px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+            background: rgba(255, 255, 255, 0.6);
+            color: #111;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        textarea:focus {
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.3);
+        }
+
+        /* Hide All Scrollbars Globally */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+        * {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .actions {
+            display: flex;
+            align-items: center;
+            margin-top: 30px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            font-family: inherit;
+            background: rgba(255, 255, 255, 0.7);
+            color: #111;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            padding: 14px 28px;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        #status {
+            margin-left: 15px;
+            font-weight: 700;
+            color: #2d6a4f;
+            background: rgba(216, 243, 220, 0.8);
+            padding: 10px 20px;
+            border-radius: 10px;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            backdrop-filter: blur(5px);
+        }
     </style>
 </head>
+
 <body>
-    <h1>Dialogue Editor</h1>
-    <p class="help-text">Enter one dialogue per line.</p>
-
-    <div class="form-group">
-        <label>Startup Dialogues</label>
-        <textarea id="dialogue-startup"></textarea>
+    <div id="title-bar">
+        <div id="close-btn" onclick="window.close()">×</div>
     </div>
 
-    <div class="form-group">
-        <label>Normal (Click) Dialogues</label>
-        <textarea id="dialogue-normal"></textarea>
+    <div id="bg-image-container">
+        <img id="bg-image" src="" style="display: none;">
     </div>
+    <div id="glass-layer"></div>
 
-    <div class="form-group">
-        <label>Idle Dialogues</label>
-        <textarea id="dialogue-idle"></textarea>
+    <div id="content">
+        <h1>Dialogue Editor</h1>
+        <p class="help-text">Enter one dialogue per line.</p>
+
+        <div class="form-group">
+            <label>Startup Dialogues</label>
+            <textarea id="dialogue-startup"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Normal (Click) Dialogues</label>
+            <textarea id="dialogue-normal"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Idle Dialogues</label>
+            <textarea id="dialogue-idle"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Quit Dialogues</label>
+            <textarea id="dialogue-quit"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Input Response Dialogues</label>
+            <textarea id="dialogue-response"></textarea>
+        </div>
+
+        <div class="actions">
+            <button id="save-btn">Save Changes</button>
+            <span id="status">✓ Saved successfully!</span>
+        </div>
     </div>
-
-    <div class="form-group">
-        <label>Quit Dialogues</label>
-        <textarea id="dialogue-quit"></textarea>
-    </div>
-
-    <div class="form-group">
-        <label>Input Response Dialogues</label>
-        <textarea id="dialogue-response"></textarea>
-    </div>
-
-    <button id="save-btn">Save Changes</button>
-    <span id="status">Saved!</span>
 
     <script>
         const { ipcRenderer } = require('electron');
+        const path = require('path');
 
         let currentConfigPath = null;
         let configData = null;
@@ -57,6 +267,46 @@
             const result = await ipcRenderer.invoke('get-current-config');
             currentConfigPath = result.path;
             configData = result.data;
+
+            const panelConfig = configData.edit_dialogue_panel || {};
+
+            // 1. Set background color (on HTML so it stays visible during scroll)
+            if (panelConfig.panel_bg_color) {
+                document.documentElement.style.backgroundColor = panelConfig.panel_bg_color;
+            }
+
+            // 2. Set centered background image and size
+            if (panelConfig.panel_bg_image && currentConfigPath) {
+                const rootDir = path.dirname(currentConfigPath);
+                const fullImgPath = path.join(rootDir, panelConfig.panel_bg_image);
+                const bgImg = document.getElementById('bg-image');
+                bgImg.src = `file:///${fullImgPath.replace(/\\/g, '/')}`; // Support windows properly
+                bgImg.style.display = 'block';
+                
+                if (panelConfig.panel_bg_image_opacity !== undefined) {
+                    bgImg.style.opacity = panelConfig.panel_bg_image_opacity;
+                }
+
+                if (panelConfig.panel_bg_image_size) {
+                    // Support both object {width, height} and simple values
+                    if (typeof panelConfig.panel_bg_image_size === 'object') {
+                        if (panelConfig.panel_bg_image_size.width) bgImg.style.width = panelConfig.panel_bg_image_size.width + 'px';
+                        if (panelConfig.panel_bg_image_size.height) bgImg.style.height = panelConfig.panel_bg_image_size.height + 'px';
+                    } else {
+                        bgImg.style.width = typeof panelConfig.panel_bg_image_size === 'number' ? 
+                            panelConfig.panel_bg_image_size + 'px' : panelConfig.panel_bg_image_size;
+                    }
+                } else {
+                    bgImg.style.width = '200px'; // Default size
+                }
+            }
+
+            // 3. Customize Glass Layer
+            const glassLayer = document.getElementById('glass-layer');
+            if (panelConfig.glass_layer_blur !== undefined) {
+                const blurVal = typeof panelConfig.glass_layer_blur === 'number' ? `${panelConfig.glass_layer_blur}px` : panelConfig.glass_layer_blur;
+                glassLayer.style.backdropFilter = `blur(${blurVal})`;
+            }
 
             document.getElementById('dialogue-startup').value = (configData.dialogue_startup || []).join('\n');
             document.getElementById('dialogue-normal').value = (configData.dialogue || []).join('\n');
@@ -90,4 +340,5 @@
         loadConfig();
     </script>
 </body>
+
 </html>

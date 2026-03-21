@@ -5,6 +5,24 @@
     "height": 110
   },
   "img_path": "118.png",
+  "edit_dialogue_panel": {
+    "panel_bg_color": "#f6d365",
+    "panel_bg_image": "logo.png",
+    "panel_bg_image_size": {
+      "width": 200,
+      "height": 200
+    },
+    "glass_layer_blur": 0
+  },
+  "dashboard_panel": {
+    "panel_bg_color": "#a18cd1",
+    "panel_bg_image": "logo.png",
+    "panel_bg_image_size": {
+      "width": 200,
+      "height": 200
+    },
+    "glass_layer_blur": 0
+  },
   "dialogue": [
     "想要说什么吗",
     "我在听",
@@ -28,7 +46,9 @@
   ],
   "dialogue_startup": [
     "欢迎回来",
-    "今天也辛苦了"
+    "今天也请多关照",
+    "今天要做什么呢？",
+    "今天会很忙吗？没关系，我会陪着你"
   ],
   "dialogue_idle": [
     "在发呆吗？",
@@ -36,12 +56,14 @@
   ],
   "dialogue_quit": [
     "嗯，一会儿见",
-    "谢谢你...今天也是幸福的一天"
+    "谢谢你...今天也是幸福的一天",
+    "请不要让我等待太久...抱歉，说了这样的话"
   ],
   "dialogue_response": [
     "嗯，我听到了",
     "我会记在心里的",
     "谢谢你对我说这些",
     "突然说这样的话吗...?"
-  ]
+  ],
+  "input_placeholder": "想要说什么吗"
 }

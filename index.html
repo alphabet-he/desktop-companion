@@ -100,7 +100,7 @@
             width: 120px;
         }
 
-        #mascot:hover ~ #user-input,
+        #mascot:hover~#user-input,
         #user-input:hover {
             visibility: visible;
             opacity: 1;
@@ -164,6 +164,9 @@
                 mascotImg.style.height = config.img_size.height + 'px';
             }
 
+            // Set placeholder from config
+            userInput.placeholder = config.input_placeholder || "Say something...";
+
             // Show startup dialogue
             setTimeout(() => {
                 showDialogueFromList(dialogue_startup);
@@ -193,9 +196,9 @@
         }
 
         ipcRenderer.on('show-quit-dialogue', () => {
-             showDialogueFromList(dialogue_quit);
-             // The main process will quit after a delay, let's keep the bubble up
-             if (bubbleTimeout) clearTimeout(bubbleTimeout);
+            showDialogueFromList(dialogue_quit);
+            // The main process will quit after a delay, let's keep the bubble up
+            if (bubbleTimeout) clearTimeout(bubbleTimeout);
         });
 
         // Handle user input
@@ -218,18 +221,22 @@
         let isDragging = false;
         let startX = 0;
         let startY = 0;
+        let grabX = 0;
+        let grabY = 0;
 
         mascotImg.addEventListener('pointerdown', (e) => {
+            if (e.button !== 0) return; // Ignore right/middle clicks for dragging
+
             // 1. Lock the pointer so dragging doesn't "slip" if you move too fast
             mascotImg.setPointerCapture(e.pointerId);
 
             // 2. Record start position
             startX = e.screenX;
             startY = e.screenY;
-            isDragging = false; // Reset drag state
+            grabX = e.clientX;
+            grabY = e.clientY;
 
-            // 3. Tell main process to calculate offset NOW (prevents window jumping later)
-            ipcRenderer.send('drag-start', { x: e.screenX, y: e.screenY });
+            isDragging = false; // Reset drag state
         });
 
         mascotImg.addEventListener('pointermove', (e) => {
@@ -243,16 +250,24 @@
             if (dist > 5) {
                 isDragging = true;
                 mascotImg.classList.add('dragging');
-                ipcRenderer.send('drag-move', { x: e.screenX, y: e.screenY });
+                ipcRenderer.send('drag-move', {
+                    x: e.screenX - startX,   // delta from drag START, not grab offset
+                    y: e.screenY - startY
+                });
+                // Then update startX/startY each move:
+                startX = e.screenX;
+                startY = e.screenY;
             }
         });
 
         mascotImg.addEventListener('pointerup', (e) => {
-            mascotImg.releasePointerCapture(e.pointerId);
+            if (mascotImg.hasPointerCapture(e.pointerId)) {
+                mascotImg.releasePointerCapture(e.pointerId);
+            }
             mascotImg.classList.remove('dragging');
 
             // 6. IF WE DID NOT DRAG (Movement < 5px), TREAT AS CLICK
-            if (!isDragging) {
+            if (!isDragging && e.button === 0) {
                 showDialogue();
             }
         });

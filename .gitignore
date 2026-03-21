@@ -2,3 +2,4 @@ node_modules
 dist
 mascot_data.json
 package-lock.json
+.vscode
