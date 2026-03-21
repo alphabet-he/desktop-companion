@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: transparent;
+            user-select: none;
+            font-family: sans-serif;
+        }
+
+        #app-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        /* BUBBLE AREA (Top) */
+        #bubble-area {
+            flex-grow: 1;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding-bottom: 10px;
+            min-height: 50px;
+        }
+
+        #bubble {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            padding: 10px 15px;
+            font-size: 14px;
+            color: #333;
+            text-align: center;
+            position: relative;
+            display: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            max-width: 180px;
+            animation: popUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        #bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            margin-left: -6px;
+            border-width: 6px 6px 0;
+            border-style: solid;
+            border-color: rgba(255, 255, 255, 0.95) transparent transparent transparent;
+        }
+
+        /* IMAGE (Bottom) */
+        #mascot {
+            object-fit: contain;
+            cursor: grab;
+            touch-action: none;
+            -webkit-user-drag: none;
+            user-drag: none;
+            user-select: none;
+            /* Crucial for Pointer Events */
+        }
+
+        #mascot.dragging {
+            cursor: grabbing;
+        }
+
+        @keyframes popUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px) scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        #user-input {
+            margin-bottom: 5px;
+            padding: 5px 10px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            background: rgba(255, 255, 255, 0.8);
+            font-size: 12px;
+            outline: none;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s, visibility 0.3s;
+            width: 120px;
+        }
+
+        #mascot:hover ~ #user-input,
+        #user-input:hover {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="app-container">
+        <div id="bubble-area">
+            <div id="bubble"></div>
+        </div>
+        <img id="mascot" src="" alt="" ondragstart="return false;">
+        <input type="text" id="user-input" placeholder="Say something..." />
+    </div>
+    <script>
+        const { ipcRenderer } = require('electron');
+        const path = require('path');
+
+        let dialogue_normal = [];
+        let dialogue_startup = [];
+        let dialogue_quit = [];
+        let dialogue_idle = [];
+        let dialogue_response = [];
+
+        const mascotImg = document.getElementById('mascot');
+        const bubble = document.getElementById('bubble');
+        const userInput = document.getElementById('user-input');
+        let bubbleTimeout;
+        let idleTimer;
+
+        function resetIdleTimer() {
+            if (idleTimer) clearTimeout(idleTimer);
+            // Random time between 10m and 30m
+            const minIdle = 10 * 60 * 1000;
+            const maxIdle = 30 * 60 * 1000;
+            const randomIdleTime = Math.floor(Math.random() * (maxIdle - minIdle)) + minIdle;
+            idleTimer = setTimeout(() => {
+                showDialogueFromList(dialogue_idle);
+                resetIdleTimer(); // reset again
+            }, randomIdleTime);
+        }
+
+        // Reset idle timer on any mouse move
+        window.addEventListener('mousemove', resetIdleTimer);
+
+        // --- CONFIG LOADER ---
+        ipcRenderer.on('init-data', (event, data) => {
+            const { config, rootDir } = data;
+            dialogue_normal = config.dialogue || ["..."];
+            dialogue_startup = config.dialogue_startup || dialogue_normal;
+            dialogue_quit = config.dialogue_quit || ["Goodbye!"];
+            dialogue_idle = config.dialogue_idle || dialogue_normal;
+            dialogue_response = config.dialogue_response || ["Heard you!"];
+
+            const fullImgPath = path.join(rootDir, config.img_path);
+            mascotImg.src = `file://${fullImgPath}`;
+            if (config.img_size) {
+                mascotImg.style.width = config.img_size.width + 'px';
+                mascotImg.style.height = config.img_size.height + 'px';
+            }
+
+            // Show startup dialogue
+            setTimeout(() => {
+                showDialogueFromList(dialogue_startup);
+                resetIdleTimer();
+                setupClickThrough();
+            }, 500);
+        });
+
+        function setupClickThrough() {
+            // Forward mouse events by default
+            ipcRenderer.send('set-ignore-mouse-events', true, { forward: true });
+
+            // Disable forward when mouse is over interactive areas
+            const interactiveElements = [mascotImg, userInput, bubble];
+            interactiveElements.forEach(el => {
+                el.addEventListener('pointerenter', () => {
+                    ipcRenderer.send('set-ignore-mouse-events', false);
+                });
+                el.addEventListener('pointerleave', (e) => {
+                    // Only re-enable if we are not moving to another interactive element
+                    const related = e.relatedTarget;
+                    if (!interactiveElements.includes(related)) {
+                        ipcRenderer.send('set-ignore-mouse-events', true, { forward: true });
+                    }
+                });
+            });
+        }
+
+        ipcRenderer.on('show-quit-dialogue', () => {
+             showDialogueFromList(dialogue_quit);
+             // The main process will quit after a delay, let's keep the bubble up
+             if (bubbleTimeout) clearTimeout(bubbleTimeout);
+        });
+
+        // Handle user input
+        userInput.addEventListener('keydown', (e) => {
+            const val = userInput.value.trim();
+            if (e.key === 'Enter') {
+                if (val === '') {
+                    // Do nothing or maybe a small visual shake
+                    return;
+                }
+                ipcRenderer.send('user-input-saved', val);
+                showDialogueFromList(dialogue_response);
+                userInput.value = '';
+                userInput.blur();
+                resetIdleTimer();
+            }
+        });
+
+        // --- SMART DRAG & CLICK LOGIC ---
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+
+        mascotImg.addEventListener('pointerdown', (e) => {
+            // 1. Lock the pointer so dragging doesn't "slip" if you move too fast
+            mascotImg.setPointerCapture(e.pointerId);
+
+            // 2. Record start position
+            startX = e.screenX;
+            startY = e.screenY;
+            isDragging = false; // Reset drag state
+
+            // 3. Tell main process to calculate offset NOW (prevents window jumping later)
+            ipcRenderer.send('drag-start', { x: e.screenX, y: e.screenY });
+        });
+
+        mascotImg.addEventListener('pointermove', (e) => {
+            // Only process if holding the button
+            if (!mascotImg.hasPointerCapture(e.pointerId)) return;
+
+            // 4. Calculate Distance Moved (Pythagoras)
+            const dist = Math.hypot(e.screenX - startX, e.screenY - startY);
+
+            // 5. THRESHOLD: Only move window if moved more than 5 pixels
+            if (dist > 5) {
+                isDragging = true;
+                mascotImg.classList.add('dragging');
+                ipcRenderer.send('drag-move', { x: e.screenX, y: e.screenY });
+            }
+        });
+
+        mascotImg.addEventListener('pointerup', (e) => {
+            mascotImg.releasePointerCapture(e.pointerId);
+            mascotImg.classList.remove('dragging');
+
+            // 6. IF WE DID NOT DRAG (Movement < 5px), TREAT AS CLICK
+            if (!isDragging) {
+                showDialogue();
+            }
+        });
+
+        function showDialogueFromList(list) {
+            if (!list || !list.length) return;
+            const text = list[Math.floor(Math.random() * list.length)];
+            bubble.innerText = text;
+            bubble.style.display = 'block';
+            if (bubbleTimeout) clearTimeout(bubbleTimeout);
+            bubbleTimeout = setTimeout(() => { bubble.style.display = 'none'; }, 3000);
+        }
+
+        function showDialogue() {
+            // Also explicitly tell main process about the click
+            ipcRenderer.send('mascot-clicked');
+            showDialogueFromList(dialogue_normal);
+            resetIdleTimer();
+        }
+
+        // Context Menu
+        window.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            ipcRenderer.send('show-context-menu');
+        });
+
+        mascotImg.addEventListener('dragstart', (e) => {
+            e.preventDefault();
+        });
+    </script>
+</body>
+
+</html>

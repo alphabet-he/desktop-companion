@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Mascot Data Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: #f9f9f9; color: #333; }
+        h1 { font-size: 24px; color: #444; border-bottom: 2px solid #ddd; padding-bottom: 5px; }
+        h2 { font-size: 18px; color: #555; margin-top: 20px; }
+        .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        ul { list-style: none; padding: 0; }
+        li { padding: 8px 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+        li:last-child { border-bottom: none; }
+        .time { color: #888; font-size: 12px; }
+        .text { font-weight: 500; }
+    </style>
+</head>
+<body>
+    <h1>Mascot Dashboard</h1>
+
+    <div class="card">
+        <h2>Hourly Clicks</h2>
+        <ul id="clicks-list">Loading clicks...</ul>
+    </div>
+
+    <div class="card">
+        <h2>User Inputs</h2>
+        <ul id="inputs-list">Loading inputs...</ul>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+
+        async function loadData() {
+            const data = await ipcRenderer.invoke('get-data');
+            
+            // Render Clicks
+            const clicksList = document.getElementById('clicks-list');
+            clicksList.innerHTML = '';
+            const hours = Object.keys(data.clicks).sort().reverse();
+            if (hours.length === 0) {
+                clicksList.innerHTML = '<li>No clicks recorded yet.</li>';
+            } else {
+                hours.forEach(hour => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span class="text">${hour}</span> <span class="time">${data.clicks[hour]} clicks</span>`;
+                    clicksList.appendChild(li);
+                });
+            }
+
+            // Render Inputs
+            const inputsList = document.getElementById('inputs-list');
+            inputsList.innerHTML = '';
+            const inputs = data.inputs.reverse(); // Newest first
+            if (inputs.length === 0) {
+                inputsList.innerHTML = '<li>No inputs recorded yet.</li>';
+            } else {
+                inputs.forEach(input => {
+                    const li = document.createElement('li');
+                    // Display our custom string directly
+                    li.innerHTML = `<span class="text">${input.text}</span> <span class="time">${input.time}</span>`;
+                    inputsList.appendChild(li);
+                });
+            }
+        }
+
+        loadData();
+    </script>
+</body>
+</html>

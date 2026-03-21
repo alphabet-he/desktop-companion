@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Dialogue Editor</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: #f9f9f9; color: #333; }
+        h1 { font-size: 24px; color: #444; border-bottom: 2px solid #ddd; padding-bottom: 5px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px; }
+        textarea { width: 100%; height: 80px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-family: inherit; resize: vertical; box-sizing: border-box; }
+        .help-text { font-size: 12px; color: #777; margin-top: 2px; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #0056b3; }
+        #status { margin-left: 10px; font-weight: bold; color: green; opacity: 0; transition: opacity 0.5s; }
+    </style>
+</head>
+<body>
+    <h1>Dialogue Editor</h1>
+    <p class="help-text">Enter one dialogue per line.</p>
+
+    <div class="form-group">
+        <label>Startup Dialogues</label>
+        <textarea id="dialogue-startup"></textarea>
+    </div>
+
+    <div class="form-group">
+        <label>Normal (Click) Dialogues</label>
+        <textarea id="dialogue-normal"></textarea>
+    </div>
+
+    <div class="form-group">
+        <label>Idle Dialogues</label>
+        <textarea id="dialogue-idle"></textarea>
+    </div>
+
+    <div class="form-group">
+        <label>Quit Dialogues</label>
+        <textarea id="dialogue-quit"></textarea>
+    </div>
+
+    <div class="form-group">
+        <label>Input Response Dialogues</label>
+        <textarea id="dialogue-response"></textarea>
+    </div>
+
+    <button id="save-btn">Save Changes</button>
+    <span id="status">Saved!</span>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+
+        let currentConfigPath = null;
+        let configData = null;
+
+        async function loadConfig() {
+            const result = await ipcRenderer.invoke('get-current-config');
+            currentConfigPath = result.path;
+            configData = result.data;
+
+            document.getElementById('dialogue-startup').value = (configData.dialogue_startup || []).join('\n');
+            document.getElementById('dialogue-normal').value = (configData.dialogue || []).join('\n');
+            document.getElementById('dialogue-idle').value = (configData.dialogue_idle || []).join('\n');
+            document.getElementById('dialogue-quit').value = (configData.dialogue_quit || []).join('\n');
+            document.getElementById('dialogue-response').value = (configData.dialogue_response || []).join('\n');
+        }
+
+        document.getElementById('save-btn').addEventListener('click', async () => {
+            if (!configData || !currentConfigPath) return;
+
+            const parseArray = (text) => text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+            configData.dialogue_startup = parseArray(document.getElementById('dialogue-startup').value);
+            configData.dialogue = parseArray(document.getElementById('dialogue-normal').value);
+            configData.dialogue_idle = parseArray(document.getElementById('dialogue-idle').value);
+            configData.dialogue_quit = parseArray(document.getElementById('dialogue-quit').value);
+            configData.dialogue_response = parseArray(document.getElementById('dialogue-response').value);
+
+            const result = await ipcRenderer.invoke('save-config', { confPath: currentConfigPath, confData: configData });
+            
+            if (result.success) {
+                const status = document.getElementById('status');
+                status.style.opacity = '1';
+                setTimeout(() => { status.style.opacity = '0'; }, 2000);
+            } else {
+                alert("Failed to save: " + result.error);
+            }
+        });
+
+        loadConfig();
+    </script>
+</body>
+</html>
