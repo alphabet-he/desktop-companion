@@ -1,118 +1,490 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
     <title>Data Dashboard</title>
     <!-- Use Outfit font -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Chart.js and WordCloud -->
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.2.2/wordcloud2.min.js"></script>
     <style>
-        html { background-color: #f7e5aa; /* Updated base background from Figma */ }
+        html {
+            background-color: #f7e5aa;
+            /* Updated base background from Figma */
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Outfit', sans-serif;
-            margin: 0; padding: 0; color: #333; height: 100vh;
-            display: flex; flex-direction: column; overflow: hidden;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
             background: transparent;
         }
 
         #title-bar {
-            height: 32px; display: flex; justify-content: flex-end; align-items: center;
-            -webkit-app-region: drag; padding: 0 12px; flex-shrink: 0;
-            background: transparent; z-index: 10;
+            height: 32px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            -webkit-app-region: drag;
+            padding: 0 12px;
+            flex-shrink: 0;
+            background: transparent;
+            z-index: 10;
         }
+
         #close-btn {
-            width: 14px; height: 14px; background: #ff5f57; border-radius: 50%;
-            cursor: pointer; -webkit-app-region: no-drag; display: flex;
-            align-items: center; justify-content: center; font-size: 11px;
-            color: transparent; font-weight: 800; transition: color 0.2s;
+            width: 14px;
+            height: 14px;
+            background: #ff5f57;
+            border-radius: 50%;
+            cursor: pointer;
+            -webkit-app-region: no-drag;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: transparent;
+            font-weight: 800;
+            transition: color 0.2s;
         }
-        #close-btn:hover { color: rgba(100, 0, 0, 0.7); }
+
+        #close-btn:hover {
+            color: rgba(100, 0, 0, 0.7);
+        }
 
         #app {
-            padding: 0 40px 30px; display: flex; flex-direction: column; flex-grow: 1;
-            overflow-y: auto; height: calc(100vh - 32px); box-sizing: border-box; position: relative; z-index: 1;
+            padding: 0 40px 30px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            overflow-y: auto;
+            height: calc(100vh - 32px);
+            box-sizing: border-box;
+            position: relative;
+            z-index: 1;
         }
 
         #bg-image-container {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            display: flex; justify-content: center; align-items: center;
-            z-index: -1; pointer-events: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: -1;
+            pointer-events: none;
         }
-        #bg-image { object-fit: contain; opacity: 1; }
+
+        #bg-image {
+            object-fit: contain;
+            opacity: 1;
+        }
+
         #glass-layer {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(255, 255, 255, 0.3); backdrop-filter: blur(8px);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(8px);
             z-index: 0;
         }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 4px; }
 
-        .header { margin-bottom: 25px; }
-        .header h1 { font-size: 32px; font-weight: 800; margin: 0 0 5px 0; color: #111; letter-spacing: -1px; }
-        .header p { font-size: 16px; font-weight: 500; margin: 0; color: #555; }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+
+        .header {
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 800;
+            margin: 0 0 5px 0;
+            color: #111;
+            letter-spacing: -1px;
+        }
+
+        .header p {
+            font-size: 16px;
+            font-weight: 500;
+            margin: 0;
+            color: #555;
+        }
 
         .nav-pills {
-            display: flex; background: rgba(255,255,255,0.4); border-radius: 16px;
-            padding: 6px; gap: 6px; margin-bottom: 25px;
+            display: flex;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 16px;
+            padding: 6px;
+            gap: 6px;
+            margin-bottom: 25px;
         }
+
         .nav-btn {
-            flex: 1; padding: 12px 0; border: none; background: transparent;
-            font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 700;
-            color: #666; cursor: pointer; border-radius: 12px; transition: all 0.2s;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
+            flex: 1;
+            padding: 12px 0;
+            border: none;
+            background: transparent;
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            color: #666;
+            cursor: pointer;
+            border-radius: 12px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
-        .nav-btn.active { background: #fff; color: #111; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 
-        .tab-content { display: none; animation: fadeIn 0.3s ease; }
-        .tab-content.active { display: block; flex-direction: column; flex-grow: 1; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .nav-btn.active {
+            background: #fff;
+            color: #111;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
 
-        .overview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-        .card { background: #fef8eb; border-radius: 24px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
-        .stat-header { display: flex; justify-content: space-between; align-items: flex-start; text-transform: uppercase; }
-        .stat-title { font-size: 13px; font-weight: 800; color: #333; letter-spacing: 1px; }
-        .icon-svg { width: 20px; height: 20px; stroke: #999; fill: none; }
-        .stat-value { font-size: 42px; font-weight: 800; color: #111; margin-top: 10px; line-height: 1; }
-        .stat-subtitle { font-size: 14px; font-weight: 500; color: #777; margin-top: 15px; }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
 
-        .word-cloud-card { flex-grow: 1; padding-bottom: 30px; }
-        #wordcloud-container { width: 100%; height: 250px; }
+        .tab-content.active {
+            display: block;
+            flex-direction: column;
+            flex-grow: 1;
+        }
 
-        .sub-nav { display: flex; justify-content: center; margin-bottom: 20px; }
-        .sub-nav-pills { display: flex; background: #fff; border-radius: 20px; padding: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .overview-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            min-width: 0;
+            overflow: hidden;
+            transition: transform 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            text-transform: uppercase;
+        }
+
+        .stat-title {
+            font-size: 13px;
+            font-weight: 800;
+            color: #333;
+            letter-spacing: 1px;
+        }
+
+        .icon-svg {
+            width: 20px;
+            height: 20px;
+            stroke: #999;
+            stroke-width: 1.5;
+            fill: none;
+        }
+
+        .stat-value {
+            font-size: 42px;
+            font-weight: 800;
+            color: #111;
+            margin-top: 10px;
+            line-height: 1;
+        }
+
+        .stat-subtitle {
+            font-size: 14px;
+            font-weight: 500;
+            color: #777;
+            margin-top: 15px;
+        }
+
+        .word-cloud-card {
+            padding-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .overview-grid .word-cloud-card {
+            grid-column: 1 / -1;
+        }
+
+        .wc-container {
+            width: 100%;
+            height: 250px;
+            overflow: hidden;
+        }
+
+        .wc-container canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .sub-nav {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .sub-nav-pills {
+            display: flex;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            padding: 4px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+        }
+
         .sub-nav-btn {
-            padding: 8px 32px; border: none; background: transparent;
-            font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 700;
-            color: #666; cursor: pointer; border-radius: 16px; transition: all 0.2s;
+            padding: 8px 32px;
+            border: none;
+            background: transparent;
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            color: #666;
+            cursor: pointer;
+            border-radius: 16px;
+            transition: all 0.2s;
         }
-        .sub-nav-btn.active { background: #f66d6d; color: #fff; }
 
-        .chart-card { margin-bottom: 20px; padding-bottom: 20px; }
-
-        .notebook-layout { display: flex; flex-direction: column; gap: 20px; }
-        .notebook-header { display: flex; justify-content: space-between; align-items: flex-end; }
-        .notebook-main { display: flex; flex-direction: column; gap: 20px; }
-        .date-picker-group { 
-            display: flex; align-items: center; background: #fff; border-radius: 16px; 
-            padding: 0 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid transparent; 
+        .sub-nav-btn.active {
+            background: #f66d6d;
+            color: #fff;
         }
-        .date-picker-group input[type="date"] { 
-            font-family: 'Outfit', sans-serif; border: none; box-shadow: none; background: transparent;
-            padding: 12px 5px; color: #333; outline: none;
-        }
-        .date-picker-group span { color: #ccc; font-weight: 600; margin: 0 4px; }
 
-        .message-list { display: flex; flex-direction: column; gap: 15px; padding-bottom: 50px; }
-        .message-item { background: #fff; padding: 24px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 12px; }
-        .msg-header { display: flex; justify-content: space-between; align-items: center; }
-        .msg-user { font-size: 15px; font-weight: 800; color: #111; }
-        .msg-time { font-size: 13px; font-weight: 700; color: #999; }
-        .msg-text { font-size: 16px; font-weight: 500; color: #444; line-height: 1.5; }
+        .chart-card {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+        }
+
+        .notebook-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .notebook-top-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .notebook-top-row>* {
+            min-width: 0;
+        }
+
+        .notebook-top-row .word-cloud-card {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .notebook-top-row .wc-container {
+            height: 200px;
+        }
+
+        /* Calendar Widget */
+        .calendar-widget {
+            padding: 16px;
+        }
+
+        .cal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .cal-header .cal-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #333;
+        }
+
+        .cal-nav {
+            background: none;
+            border: none;
+            font-size: 18px;
+            font-weight: 700;
+            color: #999;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 8px;
+            transition: all 0.15s;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .cal-nav:hover {
+            background: rgba(0, 0, 0, 0.05);
+            color: #333;
+        }
+
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            text-align: center;
+        }
+
+        .cal-dow {
+            font-size: 11px;
+            font-weight: 700;
+            color: #aaa;
+            padding: 4px 0;
+            text-transform: uppercase;
+        }
+
+        .cal-day {
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            padding: 6px 2px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+            border: none;
+            background: none;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .cal-day:hover {
+            background: rgba(246, 109, 109, 0.15);
+        }
+
+        .cal-day.empty {
+            cursor: default;
+        }
+
+        .cal-day.empty:hover {
+            background: none;
+        }
+
+        .cal-day.in-range {
+            background: rgba(246, 109, 109, 0.15);
+            color: #333;
+        }
+
+        .cal-day.range-start,
+        .cal-day.range-end {
+            background: #f66d6d;
+            color: #fff;
+            font-weight: 800;
+        }
+
+        .cal-day.today {
+            border: 2px solid #f66d6d;
+        }
+
+        .cal-day.other-month {
+            color: #ccc;
+        }
+
+        .message-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding-bottom: 50px;
+        }
+
+        .message-item {
+            background: rgba(255, 255, 255, 0.5);
+            padding: 24px;
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            transition: transform 0.2s ease;
+        }
+
+        .message-item:hover {
+            transform: translateY(-2px);
+        }
+
+        .msg-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .msg-user {
+            font-size: 15px;
+            font-weight: 800;
+            color: #111;
+        }
+
+        .msg-time {
+            font-size: 13px;
+            font-weight: 700;
+            color: #999;
+        }
+
+        .msg-text {
+            font-size: 16px;
+            font-weight: 500;
+            color: #444;
+            line-height: 1.5;
+        }
     </style>
 </head>
+
 <body>
     <div id="title-bar">
         <div id="close-btn" onclick="window.close()">×</div>
@@ -128,19 +500,29 @@
             <h1>Mascot Data</h1>
             <p>Your cozy companion metrics.</p>
         </div>
-        
+
         <div class="nav-pills">
             <button class="nav-btn active" onclick="switchTab('overview')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="icon-svg"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg> Overview
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="icon-svg">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                </svg> Overview
             </button>
             <button class="nav-btn" onclick="switchTab('activity')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="icon-svg"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> Activity
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="icon-svg">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg> Activity
             </button>
             <button class="nav-btn" onclick="switchTab('notebook')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="icon-svg"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg> Notebook
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="icon-svg">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                </svg> Notebook
             </button>
         </div>
-        
+
         <div id="main-content">
             <!-- OVERVIEW TAB -->
             <div id="overview-tab" class="tab-content active">
@@ -148,21 +530,30 @@
                     <div class="card stat-card">
                         <div class="stat-header">
                             <span class="stat-title">TODAY'S CLICKS</span>
-                            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                            <svg class="icon-svg" viewBox="0 0 24 24">
+                                <rect x="5" y="2" width="14" height="20" rx="7" />
+                                <path d="M12 2v6" />
+                            </svg>
                         </div>
                         <div class="stat-value" id="today-clicks">0</div>
                     </div>
                     <div class="card stat-card">
                         <div class="stat-header">
                             <span class="stat-title">TODAY'S NOTES</span>
-                            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                            <svg class="icon-svg" viewBox="0 0 24 24">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                            </svg>
                         </div>
                         <div class="stat-value" id="today-notes">0</div>
                     </div>
                     <div class="card stat-card">
                         <div class="stat-header">
                             <span class="stat-title">PEAK ENGAGEMENT</span>
-                            <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            <svg class="icon-svg" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
                         </div>
                         <div class="stat-value" id="peak-engagement">--:--</div>
                         <div class="stat-subtitle">Most active hour today</div>
@@ -171,16 +562,18 @@
                         <div class="stat-header">
                             <span class="stat-title">TODAY'S TREND</span>
                         </div>
-                        <div class="stat-subtitle" style="margin-top: 5px; margin-bottom: 10px; font-size:16px; font-weight: 700; color:#111;">Activity Flow</div>
+                        <div class="stat-subtitle"
+                            style="margin-top: 5px; margin-bottom: 10px; font-size:16px; font-weight: 700; color:#111;">
+                            Activity Flow</div>
                         <div style="height: 60px; position:relative;">
                             <canvas id="trendChart"></canvas>
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="card word-cloud-card">
                     <div class="stat-title" style="margin-bottom: 15px;">WORD CLOUD</div>
-                    <div id="wordcloud-container">
+                    <div class="wc-container" id="wordcloud-container">
                         <canvas id="wordcloud-canvas"></canvas>
                     </div>
                 </div>
@@ -202,12 +595,13 @@
                         <canvas id="timelineChart"></canvas>
                     </div>
                 </div>
-                
+
                 <div class="card chart-card" id="peak-hour-card">
                     <div class="stat-header" style="justify-content: flex-start; gap: 10px; margin-bottom: 10px;">
                         <span class="stat-title">PEAK ENGAGEMENT HOUR</span>
                     </div>
-                    <div class="stat-subtitle" style="margin-top: 5px; margin-bottom: 20px;">Cumulative activity across the selected period.</div>
+                    <div class="stat-subtitle" style="margin-top: 5px; margin-bottom: 20px;">Cumulative activity across
+                        the selected period.</div>
                     <div style="height: 250px; position:relative;">
                         <canvas id="barChart"></canvas>
                     </div>
@@ -217,12 +611,19 @@
             <!-- NOTEBOOK TAB -->
             <div id="notebook-tab" class="tab-content">
                 <div class="notebook-layout">
-                    <div class="notebook-header">
-                        <div class="stat-title" style="margin-top: 15px; margin-bottom: 0; line-height: 1.5; font-size:14px;">NOTEBOOK<br>HISTORY</div>
-                        <div class="date-picker-group">
-                            <input type="date" id="msgDateStart" onchange="updateMessages()">
-                            <span>-</span>
-                            <input type="date" id="msgDateEnd" onchange="updateMessages()">
+                    <div class="notebook-top-row">
+                        <div class="card calendar-widget">
+                            <div class="cal-header">
+                                <button class="cal-nav" onclick="calPrevMonth()">‹</button>
+                                <span class="cal-title" id="cal-month-title"></span>
+                                <button class="cal-nav" onclick="calNextMonth()">›</button>
+                            </div>
+                            <div class="cal-grid" id="cal-grid"></div>
+                        </div>
+                        <div class="card word-cloud-card">
+                            <div class="wc-container" id="nb-wordcloud-container">
+                                <canvas id="nb-wordcloud-canvas"></canvas>
+                            </div>
                         </div>
                     </div>
                     <div class="message-list" id="messageList">
@@ -237,6 +638,7 @@
     <!-- MAIN SCRIPT -->
     <script>
         const { ipcRenderer } = require('electron');
+        const WordCloud = require('wordcloud');
 
         let globalData = { clicks: {}, inputs: [] };
         let trendChartInst = null;
@@ -244,6 +646,12 @@
         let barChartInst = null;
         let currentActivityRange = 'day'; // day, week, month
         let wordcloudDrawn = false;
+
+        // Calendar state
+        let calYear, calMonth; // currently displayed month
+        let calRangeStart = null; // Date obj
+        let calRangeEnd = null;   // Date obj
+        let calClickState = 0;    // 0 = next click sets start, 1 = next click sets end
 
         const C_RED = '#f66d6d';
         const C_BLUE = '#7ba1c2';
@@ -253,7 +661,7 @@
             const currentConfigPath = confResult.path;
             const configData = confResult.data;
             const panelConfig = configData.dashboard_panel || {};
-            
+
             if (panelConfig.panel_bg_color) {
                 document.documentElement.style.backgroundColor = panelConfig.panel_bg_color;
             }
@@ -263,7 +671,7 @@
                 const bgImg = document.getElementById('bg-image');
                 bgImg.src = `file:///${fullImgPath.replace(/\\/g, '/')}`;
                 bgImg.style.display = 'block';
-                
+
                 if (panelConfig.panel_bg_image_opacity !== undefined) bgImg.style.opacity = panelConfig.panel_bg_image_opacity;
                 if (panelConfig.panel_bg_image_size) {
                     if (typeof panelConfig.panel_bg_image_size === 'object') {
@@ -281,18 +689,21 @@
             }
 
             globalData = await ipcRenderer.invoke('get-data');
-            
+
             Chart.defaults.font.family = "'Outfit', sans-serif";
             Chart.defaults.color = "#999";
 
             const today = new Date();
             const startDay = new Date(today);
-            startDay.setDate(startDay.getDate() - 3);
-            document.getElementById('msgDateStart').value = getLocalDateStr(startDay);
-            document.getElementById('msgDateEnd').value = getLocalDateStr(today);
-            
+            startDay.setDate(startDay.getDate() - 7);
+            calRangeStart = startDay;
+            calRangeEnd = today;
+            calYear = today.getFullYear();
+            calMonth = today.getMonth();
+
             renderOverview();
             renderActivity();
+            renderCalendar();
             updateMessages();
         }
 
@@ -300,12 +711,12 @@
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-            
+
             document.getElementById(`${tabId}-tab`).classList.add('active');
             event.currentTarget.classList.add('active');
 
             if (tabId === 'overview' && !wordcloudDrawn) {
-                renderWordCloud();
+                renderOverviewWordCloud();
             } else if (tabId === 'overview') {
                 window.dispatchEvent(new Event('resize'));
             } else if (tabId === 'activity') {
@@ -324,14 +735,14 @@
 
         // --- DATA HELPERS ---
         function getLocalDateStr(d) {
-            const pad = n => String(n).padStart(2,'0');
-            return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+            const pad = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
         }
 
         function getKeysInRange(days) {
             const keys = [];
             const today = new Date();
-            for(let i=days-1; i>=0; i--) {
+            for (let i = days - 1; i >= 0; i--) {
                 let d = new Date(today);
                 d.setDate(d.getDate() - i);
                 keys.push(getLocalDateStr(d));
@@ -349,7 +760,7 @@
 
             // globalData.clicks Keys: "YYYY-MM-DD-HH:00"
             Object.keys(globalData.clicks).forEach(k => {
-                if(k.startsWith(todayStr)) {
+                if (k.startsWith(todayStr)) {
                     todayClicks += globalData.clicks[k];
                     const hr = parseInt(k.substring(11, 13));
                     hourCounts[hr] += globalData.clicks[k];
@@ -358,7 +769,7 @@
 
             // globalData.inputs Time: "YYYY-MM-DD-HH:mm:ss"
             globalData.inputs.forEach(i => {
-                if(i.time.startsWith(todayStr)) {
+                if (i.time.startsWith(todayStr)) {
                     todayNotes++;
                     const hr = parseInt(i.time.substring(11, 13));
                     hourCounts[hr]++;
@@ -369,17 +780,17 @@
             document.getElementById('today-notes').innerText = todayNotes;
 
             const maxAct = Math.max(...hourCounts);
-            if(maxAct === 0) {
+            if (maxAct === 0) {
                 document.getElementById('peak-engagement').innerText = '--:--';
             } else {
                 const peakHr = hourCounts.indexOf(maxAct);
-                document.getElementById('peak-engagement').innerText = `${String(peakHr).padStart(2,'0')}:00`;
+                document.getElementById('peak-engagement').innerText = `${String(peakHr).padStart(2, '0')}:00`;
             }
 
             // Trend Chart
             if (trendChartInst) trendChartInst.destroy();
             const ctxTrend = document.getElementById('trendChart').getContext('2d');
-            
+
             let gradient = ctxTrend.createLinearGradient(0, 0, 0, 60);
             gradient.addColorStop(0, 'rgba(246, 109, 109, 0.4)');
             gradient.addColorStop(1, 'rgba(246, 109, 109, 0.0)');
@@ -387,7 +798,7 @@
             trendChartInst = new Chart(ctxTrend, {
                 type: 'line',
                 data: {
-                    labels: Array.from({length:24}, (_,i) => i),
+                    labels: Array.from({ length: 24 }, (_, i) => i),
                     datasets: [{
                         data: hourCounts,
                         borderColor: C_RED,
@@ -409,52 +820,67 @@
                 }
             });
 
-            renderWordCloud();
+            renderOverviewWordCloud();
         }
 
-        function renderWordCloud() {
-            const wc = document.getElementById('wordcloud-canvas');
-            const container = document.getElementById('wordcloud-container');
-            wc.width = container.clientWidth;
-            wc.height = container.clientHeight;
+        function renderOverviewWordCloud(wordCnt = 40) {
+            setTimeout(() => {
+                const wc = document.getElementById('wordcloud-canvas');
+                const container = document.getElementById('wordcloud-container');
+                const rect = container.getBoundingClientRect();
+                const dpr = window.devicePixelRatio || 1;
+                const cssW = Math.floor(rect.width);
+                const cssH = Math.floor(rect.height);
 
-            let wordsMap = {};
-            const segmenter = new Intl.Segmenter(undefined, { granularity: 'word' });
-            
-            globalData.inputs.forEach(inp => {
-                const segments = segmenter.segment(inp.text.toLowerCase());
-                for (const {segment, isWordLike} of segments) {
-                    if (isWordLike && segment.length >= 2) {
-                        wordsMap[segment] = (wordsMap[segment] || 0) + 1;
+                // Set the actual buffer size (high-res)
+                wc.width = cssW * dpr;
+                wc.height = cssH * dpr;
+                // Keep CSS size so layout isn't disrupted
+                wc.style.width = cssW + 'px';
+                wc.style.height = cssH + 'px';
+
+                if (wc.width === 0 || wc.height === 0) return;
+
+                let wordsMap = {};
+                const segmenter = new Intl.Segmenter(undefined, { granularity: 'word' });
+
+                globalData.inputs.forEach(inp => {
+                    const segments = segmenter.segment(inp.text);
+                    for (const { segment, isWordLike } of segments) {
+                        if (isWordLike && segment.length >= 2) {
+                            wordsMap[segment] = (wordsMap[segment] || 0) + 1;
+                        }
                     }
-                }
-            });
+                });
 
-            let list = Object.keys(wordsMap).map(k => [k, wordsMap[k]*12 + 16]); // Scale to normal words size
-            list.sort((a,b) => b[1] - a[1]);
-            list = list.slice(0, 50);
+                let list = Object.keys(wordsMap).map(k => [k, wordsMap[k] * 12 + 16]);
+                list.sort((a, b) => b[1] - a[1]);
+                list = list.slice(0, wordCnt);
 
-            if(list.length === 0) list = [['No data', 30]];
+                if (list.length === 0) list = [['No data', 30]];
 
-            const colors = ['#f66d6d', '#ecaf66', '#8ab498', '#7ba1c2', '#bd9fb7'];
+                const colors = ['#f66d6d', '#ecaf66', '#8ab498', '#7ba1c2', '#bd9fb7'];
 
-            WordCloud(wc, {
-                list: list,
-                fontFamily: 'Outfit, sans-serif',
-                fontWeight: 700,
-                color: () => colors[Math.floor(Math.random() * colors.length)],
-                rotateRatio: 0,
-                backgroundColor: 'transparent',
-                shrinkToFit: true,
-                gridSize: 10
-            });
-            wordcloudDrawn = true;
+                try {
+                    WordCloud(wc, {
+                        list: list,
+                        fontFamily: 'Outfit, sans-serif',
+                        fontWeight: 700,
+                        color: () => colors[Math.floor(Math.random() * colors.length)],
+                        rotateRatio: 0,
+                        backgroundColor: 'transparent',
+                        shrinkToFit: true,
+                        gridSize: 10
+                    });
+                } catch (e) { }
+                wordcloudDrawn = true;
+            }, 100);
         }
 
         window.addEventListener('resize', () => {
             if (document.getElementById('overview-tab').classList.contains('active')) {
                 clearTimeout(window.resizeTimer);
-                window.resizeTimer = setTimeout(() => { renderWordCloud(); }, 200);
+                window.resizeTimer = setTimeout(() => { renderOverviewWordCloud(); }, 200);
             }
         });
 
@@ -463,25 +889,25 @@
             let labels = [];
             let clicksData = [];
             let dialogsData = [];
-            let barLabels = Array.from({length: 24}, (_, i) => String(i).padStart(2,'0') + ':00');
+            let barLabels = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0') + ':00');
             let barClicks = Array(24).fill(0);
             let barDialogs = Array(24).fill(0);
 
             if (currentActivityRange === 'day') {
                 const todayStr = getLocalDateStr(new Date());
-                labels = Array.from({length: 24}, (_, i) => String(i).padStart(2,'0') + ':00');
+                labels = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0') + ':00');
                 clicksData = Array(24).fill(0);
                 dialogsData = Array(24).fill(0);
 
                 Object.keys(globalData.clicks).forEach(k => {
-                    if(k.startsWith(todayStr)) {
+                    if (k.startsWith(todayStr)) {
                         const hr = parseInt(k.substring(11, 13));
                         clicksData[hr] += globalData.clicks[k];
                         barClicks[hr] += globalData.clicks[k];
                     }
                 });
                 globalData.inputs.forEach(i => {
-                    if(i.time.startsWith(todayStr)) {
+                    if (i.time.startsWith(todayStr)) {
                         const hr = parseInt(i.time.substring(11, 13));
                         dialogsData[hr]++;
                         barDialogs[hr]++;
@@ -495,32 +921,32 @@
 
                 labels.forEach((dateStr, idx) => {
                     Object.keys(globalData.clicks).forEach(k => {
-                        if(k.startsWith(dateStr)) {
+                        if (k.startsWith(dateStr)) {
                             clicksData[idx] += globalData.clicks[k];
                             const hr = parseInt(k.substring(11, 13));
                             barClicks[hr] += globalData.clicks[k];
                         }
                     });
                     globalData.inputs.forEach(i => {
-                        if(i.time.startsWith(dateStr)) {
+                        if (i.time.startsWith(dateStr)) {
                             dialogsData[idx]++;
                             const hr = parseInt(i.time.substring(11, 13));
                             barDialogs[hr]++;
                         }
                     });
                 });
-                
+
                 // Format labels for timeline "MM/DD"
                 labels = labels.map(l => {
                     const d = new Date(l);
-                    return `${d.getMonth()+1}/${d.getDate()}`;
+                    return `${d.getMonth() + 1}/${d.getDate()}`;
                 });
             }
 
             // Timeline Line Chart
             if (timelineChartInst) timelineChartInst.destroy();
             const ctxLine = document.getElementById('timelineChart').getContext('2d');
-            
+
             let gradBg = ctxLine.createLinearGradient(0, 0, 0, 250);
             gradBg.addColorStop(0, 'rgba(246, 109, 109, 0.15)');
             gradBg.addColorStop(1, 'rgba(246, 109, 109, 0.0)');
@@ -537,12 +963,12 @@
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
-                    plugins: { 
-                        legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font:{family:"Outfit", weight:'600'} } } 
+                    plugins: {
+                        legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { family: "Outfit", weight: '600' } } }
                     },
                     scales: {
-                        x: { grid: { display: false }, ticks: { font:{family:"Outfit"} } },
-                        y: { border: { dash: [4, 4] }, grid: { color: 'rgba(0,0,0,0.05)', tickBorderDash: [4, 4] }, ticks: { stepSize: 15, font:{family:"Outfit"} }, beginAtZero: true }
+                        x: { grid: { display: false }, ticks: { font: { family: "Outfit" } } },
+                        y: { border: { dash: [4, 4] }, grid: { color: 'rgba(0,0,0,0.05)', tickBorderDash: [4, 4] }, ticks: { stepSize: 15, font: { family: "Outfit" } }, beginAtZero: true }
                     }
                 }
             });
@@ -562,30 +988,115 @@
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
-                    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font:{family:"Outfit", weight:'600'} } } },
+                    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { family: "Outfit", weight: '600' } } } },
                     scales: {
-                        x: { stacked: true, grid: { display: false }, ticks: { maxTicksLimit: 12, font:{family:"Outfit"} } },
-                        y: { stacked: true, border: { dash: [4, 4] }, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { stepSize: 15, font:{family:"Outfit"} }, beginAtZero: true }
+                        x: { stacked: true, grid: { display: false }, ticks: { maxTicksLimit: 12, font: { family: "Outfit" } } },
+                        y: { stacked: true, border: { dash: [4, 4] }, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { stepSize: 15, font: { family: "Outfit" } }, beginAtZero: true }
                     }
                 }
             });
         }
 
         // --- NOTEBOOK TAB ---
+
+        const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+        function renderCalendar() {
+            document.getElementById('cal-month-title').textContent = `${MONTH_NAMES[calMonth]} ${calYear}`;
+            const grid = document.getElementById('cal-grid');
+            grid.innerHTML = '';
+
+            // Day-of-week headers
+            DOW.forEach(d => {
+                const el = document.createElement('div');
+                el.className = 'cal-dow';
+                el.textContent = d;
+                grid.appendChild(el);
+            });
+
+            const firstDay = new Date(calYear, calMonth, 1).getDay();
+            const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+            const todayStr = getLocalDateStr(new Date());
+
+            // Empty cells before first day
+            for (let i = 0; i < firstDay; i++) {
+                const el = document.createElement('div');
+                el.className = 'cal-day empty';
+                grid.appendChild(el);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const btn = document.createElement('button');
+                btn.className = 'cal-day';
+                btn.textContent = day;
+
+                const cellDate = new Date(calYear, calMonth, day);
+                const cellStr = getLocalDateStr(cellDate);
+
+                if (cellStr === todayStr) btn.classList.add('today');
+
+                if (calRangeStart && calRangeEnd) {
+                    const startStr = getLocalDateStr(calRangeStart);
+                    const endStr = getLocalDateStr(calRangeEnd);
+                    if (cellStr === startStr) btn.classList.add('range-start');
+                    if (cellStr === endStr) btn.classList.add('range-end');
+                    if (cellStr > startStr && cellStr < endStr) btn.classList.add('in-range');
+                } else if (calRangeStart) {
+                    const startStr = getLocalDateStr(calRangeStart);
+                    if (cellStr === startStr) btn.classList.add('range-start');
+                }
+
+                btn.addEventListener('click', () => calDayClicked(cellDate));
+                grid.appendChild(btn);
+            }
+        }
+
+        function calDayClicked(date) {
+            if (calClickState === 0) {
+                calRangeStart = date;
+                calRangeEnd = null;
+                calClickState = 1;
+                renderCalendar();
+            } else {
+                calRangeEnd = date;
+                calClickState = 0;
+                // Auto-swap if end < start
+                if (calRangeEnd < calRangeStart) {
+                    [calRangeStart, calRangeEnd] = [calRangeEnd, calRangeStart];
+                }
+                renderCalendar();
+                updateMessages();
+            }
+        }
+
+        function calPrevMonth() {
+            calMonth--;
+            if (calMonth < 0) { calMonth = 11; calYear--; }
+            renderCalendar();
+        }
+
+        function calNextMonth() {
+            calMonth++;
+            if (calMonth > 11) { calMonth = 0; calYear++; }
+            renderCalendar();
+        }
+
         function updateMessages() {
-            const startStr = document.getElementById('msgDateStart').value;
-             let endStr = document.getElementById('msgDateEnd').value;
-             
-             // To include the entire end date safely without string padding issues, we match the first 10 characters (YYYY-MM-DD)
-            
+            const startStr = calRangeStart ? getLocalDateStr(calRangeStart) : null;
+            const endStr = calRangeEnd ? getLocalDateStr(calRangeEnd) : null;
+
             let filtered = globalData.inputs.slice();
 
             if (startStr) {
-                filtered = filtered.filter(i => i.time.substring(0,10) >= startStr);
+                filtered = filtered.filter(i => i.time.substring(0, 10) >= startStr);
             }
             if (endStr) {
-                filtered = filtered.filter(i => i.time.substring(0,10) <= endStr);
+                filtered = filtered.filter(i => i.time.substring(0, 10) <= endStr);
             }
+
+            // Render notebook word cloud from same filtered data
+            renderNotebookWordCloud(filtered);
 
             filtered.reverse(); // newest first
             const listEl = document.getElementById('messageList');
@@ -599,29 +1110,80 @@
             filtered.forEach(msg => {
                 const item = document.createElement('div');
                 item.className = 'message-item';
-                
-                // Parse "2026-03-31-15:20:17"
+
                 const parts = msg.time.split('-');
                 let prettyTime = msg.time;
-                if(parts.length >= 4) {
+                if (parts.length >= 4) {
                     const isoStr = `${parts[0]}-${parts[1]}-${parts[2]}T${parts[3]}`;
                     const d = new Date(isoStr);
-                    if(!isNaN(d)) {
-                        prettyTime = d.toLocaleString('en-US', {month: 'short', day: 'numeric', hour: 'numeric', minute:'2-digit'});
+                    if (!isNaN(d)) {
+                        prettyTime = d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
                     }
                 }
 
                 item.innerHTML = `
-                    <div class="msg-header" style="justify-content: flex-end;">
-                        <div class="msg-time">${prettyTime}</div>
-                    </div>
                     <div class="msg-text">${msg.text}</div>
+                    <div class="msg-header" style="justify-content: flex-end; margin-top: 5px;">
+                        <div class="msg-time" style="font-size: 12px; font-weight: 500;">${prettyTime}</div>
+                    </div>
                 `;
                 listEl.appendChild(item);
             });
         }
 
+        function renderNotebookWordCloud(filteredInputs) {
+            setTimeout(() => {
+                const wc = document.getElementById('nb-wordcloud-canvas');
+                const container = document.getElementById('nb-wordcloud-container');
+                const rect = container.getBoundingClientRect();
+                const dpr = window.devicePixelRatio || 1;
+                const cssW = Math.floor(rect.width);
+                const cssH = Math.floor(rect.height);
+
+                wc.width = cssW * dpr;
+                wc.height = cssH * dpr;
+                wc.style.width = cssW + 'px';
+                wc.style.height = cssH + 'px';
+
+                if (wc.width === 0 || wc.height === 0) return;
+
+                let wordsMap = {};
+                const segmenter = new Intl.Segmenter(undefined, { granularity: 'word' });
+
+                filteredInputs.forEach(inp => {
+                    const segments = segmenter.segment(inp.text);
+                    for (const { segment, isWordLike } of segments) {
+                        if (isWordLike && segment.length >= 2) {
+                            wordsMap[segment] = (wordsMap[segment] || 0) + 1;
+                        }
+                    }
+                });
+
+                let list = Object.keys(wordsMap).map(k => [k, wordsMap[k] * 12 + 16]);
+                list.sort((a, b) => b[1] - a[1]);
+                list = list.slice(0, 20);
+
+                if (list.length === 0) list = [['No data', 30]];
+
+                const colors = ['#f66d6d', '#ecaf66', '#8ab498', '#7ba1c2', '#bd9fb7'];
+
+                try {
+                    WordCloud(wc, {
+                        list: list,
+                        fontFamily: 'Outfit, sans-serif',
+                        fontWeight: 700,
+                        color: () => colors[Math.floor(Math.random() * colors.length)],
+                        rotateRatio: 0,
+                        backgroundColor: 'transparent',
+                        shrinkToFit: true,
+                        gridSize: 10
+                    });
+                } catch (e) { }
+            }, 100);
+        }
+
         init();
     </script>
 </body>
+
 </html>

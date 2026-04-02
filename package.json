@@ -13,5 +13,8 @@
   "devDependencies": {
     "electron": "^39.2.7",
     "electron-packager": "^17.1.2"
+  },
+  "dependencies": {
+    "wordcloud": "^1.2.3"
   }
 }

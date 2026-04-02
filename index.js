@@ -57,6 +57,8 @@ function loadConfig(filePath) {
 
 // --- 2. WINDOW CREATION ---
 
+let mainWin = null;
+
 function createWindow() {
   const rootDir = getRootDir();
 
@@ -74,7 +76,7 @@ function createWindow() {
   const winWidth = (config.img_size?.width || 100) + 200;
   const winHeight = (config.img_size?.height || 100) + 150;
 
-  const win = new BrowserWindow({
+  mainWin = new BrowserWindow({
     width: winWidth,
     height: winHeight,
     frame: false,
@@ -87,16 +89,16 @@ function createWindow() {
   });
 
   if (process.platform === 'darwin') {
-    win.setAlwaysOnTop(true, 'floating');
-    win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    mainWin.setAlwaysOnTop(true, 'floating');
+    mainWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   } else {
-    win.setAlwaysOnTop(true, 'screen-saver');
+    mainWin.setAlwaysOnTop(true, 'screen-saver');
   }
 
-  win.loadFile('index.html');
+  mainWin.loadFile('index.html');
 
   // When window loads, read the CURRENT config file and send it
-  win.webContents.on('did-finish-load', () => {
+  mainWin.webContents.on('did-finish-load', () => {
     if (!currentConfigPath) return;
 
     const freshConfig = loadConfig(currentConfigPath);
@@ -104,10 +106,10 @@ function createWindow() {
     // Resize window dynamically based on the new character's size
     const newWidth = (freshConfig.img_size.width || 100) + 200;
     const newHeight = (freshConfig.img_size.height || 100) + 150;
-    win.setSize(newWidth, newHeight);
+    mainWin.setSize(newWidth, newHeight);
 
     // Send data to renderer
-    win.webContents.send('init-data', { config: freshConfig, rootDir });
+    mainWin.webContents.send('init-data', { config: freshConfig, rootDir });
   });
 }
 
@@ -122,9 +124,8 @@ app.on('before-quit', (e) => {
   if (!isQuitting) {
     e.preventDefault();
     isQuitting = true;
-    const wins = BrowserWindow.getAllWindows();
-    if (wins.length > 0) {
-      wins[0].webContents.send('show-quit-dialogue');
+    if (mainWin && !mainWin.isDestroyed()) {
+      mainWin.webContents.send('show-quit-dialogue');
       setTimeout(() => {
         app.quit();
       }, 3000);
@@ -182,7 +183,7 @@ let dashboardWin = null;
 function openDashboard() {
   if (dashboardWin) { dashboardWin.focus(); return; }
   dashboardWin = new BrowserWindow({
-    width: 600, height: 500,
+    width: 600, height: 650,
     frame: false,
     webPreferences: { nodeIntegration: true, contextIsolation: false }
   });
@@ -194,7 +195,7 @@ let editorWin = null;
 function openEditor() {
   if (editorWin) { editorWin.focus(); return; }
   editorWin = new BrowserWindow({
-    width: 600, height: 600,
+    width: 600, height: 650,
     frame: false,
     webPreferences: { nodeIntegration: true, contextIsolation: false }
   });
@@ -238,9 +239,8 @@ ipcMain.on('show-context-menu', (event) => {
       type: 'radio',    // Shows a checkmark next to active one
       checked: conf.path === currentConfigPath,
       click: () => {
-        // Update global variable and reload window
         currentConfigPath = conf.path;
-        win.reload();
+        mainWin.reload();
       }
     });
   });
@@ -254,7 +254,7 @@ ipcMain.on('show-context-menu', (event) => {
   );
 
   const menu = Menu.buildFromTemplate(menuTemplate);
-  menu.popup({ window: win });
+  menu.popup({ window: mainWin });
 });
 
 // --- 4. DRAG LOGIC ---
