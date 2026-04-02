@@ -137,6 +137,15 @@ app.on('before-quit', (e) => {
 
 // --- DATA STORE HELPERS ---
 const dataFilePath = path.join(getRootDir(), 'mascot_data.json');
+const stopWordsFilePath = path.join(getRootDir(), 'stopwords.json');
+
+function loadStopWords() {
+  try {
+    return JSON.parse(fs.readFileSync(stopWordsFilePath, 'utf8'));
+  } catch (e) {
+    return ["我", "你", "的", "了", "好"];
+  }
+}
 
 function loadData() {
   try {
@@ -204,6 +213,13 @@ function openEditor() {
 }
 
 ipcMain.handle('get-data', () => loadData());
+ipcMain.handle('get-stopwords', () => loadStopWords());
+ipcMain.handle('save-stopwords', (event, list) => {
+  try {
+    fs.writeFileSync(stopWordsFilePath, JSON.stringify(list, null, 2), 'utf8');
+    return true;
+  } catch (e) { return false; }
+});
 ipcMain.handle('get-current-config', () => {
   return { path: currentConfigPath, data: currentConfigPath ? loadConfig(currentConfigPath) : {} };
 });

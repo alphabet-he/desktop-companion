@@ -656,7 +656,12 @@
         const C_RED = '#f66d6d';
         const C_BLUE = '#7ba1c2';
 
+        let stopWordsSet = new Set();
+
         async function init() {
+            const list = await ipcRenderer.invoke('get-stopwords');
+            stopWordsSet = new Set(list);
+
             const confResult = await ipcRenderer.invoke('get-current-config');
             const currentConfigPath = confResult.path;
             const configData = confResult.data;
@@ -847,7 +852,8 @@
                 globalData.inputs.forEach(inp => {
                     const segments = segmenter.segment(inp.text);
                     for (const { segment, isWordLike } of segments) {
-                        if (isWordLike && segment.length >= 2) {
+                        const isCJK = /[\u4e00-\u9fff\u3400-\u4dbf]/.test(segment);
+                        if (isWordLike && !stopWordsSet.has(segment) && (segment.length >= 2 || isCJK)) {
                             wordsMap[segment] = (wordsMap[segment] || 0) + 1;
                         }
                     }
@@ -1153,13 +1159,14 @@
                 filteredInputs.forEach(inp => {
                     const segments = segmenter.segment(inp.text);
                     for (const { segment, isWordLike } of segments) {
-                        if (isWordLike && segment.length >= 2) {
+                        const isCJK = /[\u4e00-\u9fff\u3400-\u4dbf]/.test(segment);
+                        if (isWordLike && !stopWordsSet.has(segment) && (segment.length >= 2 || isCJK)) {
                             wordsMap[segment] = (wordsMap[segment] || 0) + 1;
                         }
                     }
                 });
 
-                let list = Object.keys(wordsMap).map(k => [k, wordsMap[k] * 12 + 16]);
+                let list = Object.keys(wordsMap).map(k => [k, wordsMap[k] * 8 + 10]);
                 list.sort((a, b) => b[1] - a[1]);
                 list = list.slice(0, 20);
 
@@ -1176,7 +1183,7 @@
                         rotateRatio: 0,
                         backgroundColor: 'transparent',
                         shrinkToFit: true,
-                        gridSize: 10
+                        gridSize: 8
                     });
                 } catch (e) { }
             }, 100);
