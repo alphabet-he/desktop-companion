@@ -80,7 +80,7 @@ function createWindow() {
     alwaysOnTop: true,
     resizable: false,
     hasShadow: false,
-    skipTaskbar: true,
+    //skipTaskbar: true,
     webPreferences: { nodeIntegration: true, contextIsolation: false }
   });
 
@@ -172,7 +172,7 @@ function loadAllData() {
   const dataDir = path.join(getRootDir(), 'data');
   const merged = { clicks: {}, inputs: [] };
   if (!fs.existsSync(dataDir)) return merged;
-  
+
   const files = fs.readdirSync(dataDir).filter(f => f.endsWith('.json'));
   for (const f of files) {
     const d = readJson(path.join(dataDir, f), { clicks: {}, inputs: [] });

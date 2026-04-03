@@ -7,7 +7,8 @@
     "start": "electron .",
     "build:mac": "npx electron-packager . --platform=darwin --arch=x64 --asar --out=dist --overwrite",
     "build:win": "npx electron-packager . --platform=win32 --arch=x64 --asar --out=dist --overwrite",
-    "build": "npm run build:mac && npm run build:win"
+    "build": "npm run build:mac && npm run build:win",
+    "postbuild": "node scripts/postbuild.js"
   },
   "keywords": [],
   "author": "",

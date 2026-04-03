@@ -1,0 +1,49 @@
+{
+  "name": "Meowscot",
+  "img_size": {
+    "width": 150,
+    "height": 150
+  },
+  "img_path": "cat.png",
+  "edit_dialogue_panel": {
+    "panel_bg_color": "#d9e8dd",
+    "panel_bg_image": "fish.png",
+    "panel_bg_image_size": {
+      "width": 200,
+      "height": 200
+    },
+    "glass_layer_blur": 5
+  },
+  "dashboard_panel": {
+    "panel_bg_color": "#e8e0d9",
+    "panel_bg_image": "fish.png",
+    "panel_bg_image_size": {
+      "width": 200,
+      "height": 200
+    },
+    "glass_layer_blur": 5
+  },
+  "dialogue": [
+    "Meow",
+    "Meow meow",
+    "Purr...",
+    "*rubs against your leg*",
+    "Need something?",
+    "Meow~",
+    "Pet me!"
+  ],
+  "dialogue_startup": [
+    "Meow! Welcome back!",
+    "Purr... Hello!"
+  ],
+  "dialogue_idle": [
+    "Zzz...",
+    "...meow?",
+    "*tail swish*"
+  ],
+  "dialogue_quit": [
+    "Meow! See you!",
+    "Purr..."
+  ],
+  "input_placeholder": "Say meow..."
+}
