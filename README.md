@@ -2,6 +2,8 @@
 
 A fully customizable desktop mascot for macOS and Windows. This interactive companion stays on top of your windows, responds to your clicks, and tracks your daily interactions through a beautiful glassmorphism dashboard.
 
+https://github.com/user-attachments/assets/3780fdf3-ff24-43d9-aaa8-71cc457acbd4
+
 ## 🌟 For Users
 
 ### 🎮 How to Use
@@ -66,4 +68,4 @@ Want more friends? Simply drop a new `.json` configuration file and its correspo
 
 ---
 
-*Built by AI* 🐾
+*0% handwritten codes; 100% built by AI* 🐾
