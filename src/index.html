@@ -149,13 +149,14 @@
 
         // --- CONFIG LOADER ---
         ipcRenderer.on('init-data', (event, data) => {
-            const { config, rootDir } = data;
+            const { config, rootDir, configDir } = data;
             dialogue_normal = config.dialogue || ["..."];
             dialogue_startup = config.dialogue_startup || dialogue_normal;
             dialogue_quit = config.dialogue_quit || ["Goodbye!"];
             dialogue_idle = config.dialogue_idle || dialogue_normal;
 
-            const fullImgPath = path.join(rootDir, config.img_path);
+            const baseDir = configDir || rootDir;
+            const fullImgPath = path.join(baseDir, config.img_path);
             mascotImg.src = `file://${fullImgPath}`;
             if (config.img_size) {
                 mascotImg.style.width = config.img_size.width + 'px';

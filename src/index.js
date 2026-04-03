@@ -20,7 +20,8 @@ function getRootDir() {
 }
 
 function scanConfigs() {
-  const dir = getRootDir();
+  const dir = path.join(getRootDir(), 'configs');
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   const files = fs.readdirSync(dir).filter(file => file.endsWith('.json'));
 
   const configs = [];
@@ -90,7 +91,7 @@ function createWindow() {
     mainWin.setAlwaysOnTop(true, 'screen-saver');
   }
 
-  mainWin.loadFile('index.html');
+  mainWin.loadFile(path.join(__dirname, 'index.html'));
 
   // When window loads, read the CURRENT config file and send it
   mainWin.webContents.on('did-finish-load', () => {
@@ -104,7 +105,7 @@ function createWindow() {
     mainWin.setSize(newWidth, newHeight);
 
     // Send data to renderer
-    mainWin.webContents.send('init-data', { config: freshConfig, rootDir });
+    mainWin.webContents.send('init-data', { config: freshConfig, rootDir, configDir: path.dirname(currentConfigPath) });
   });
 }
 
@@ -131,8 +132,7 @@ app.on('before-quit', (e) => {
 });
 
 // --- DATA STORE HELPERS ---
-const dataFilePath = path.join(getRootDir(), 'mascot_data.json');
-const stopWordsFilePath = path.join(getRootDir(), 'stopwords.json');
+const stopWordsFilePath = path.join(getRootDir(), 'configs', 'stopwords.json');
 
 function readJson(filePath, defaultValue) {
   try {
@@ -150,12 +150,42 @@ function loadStopWords() {
   return readJson(stopWordsFilePath, ["我", "你", "的", "了", "好"]);
 }
 
-function loadData() {
-  return readJson(dataFilePath, { clicks: {}, inputs: [] });
+function getDataFilePath(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return path.join(getRootDir(), 'data', `${year}-${month}.json`);
 }
 
-function saveData(data) {
-  writeJson(dataFilePath, data);
+function loadDataForDate(date) {
+  return readJson(getDataFilePath(date), { clicks: {}, inputs: [] });
+}
+
+function saveDataForDate(data, date) {
+  const dir = path.join(getRootDir(), 'data');
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  writeJson(getDataFilePath(date), data);
+}
+
+function loadAllData() {
+  const dataDir = path.join(getRootDir(), 'data');
+  const merged = { clicks: {}, inputs: [] };
+  if (!fs.existsSync(dataDir)) return merged;
+  
+  const files = fs.readdirSync(dataDir).filter(f => f.endsWith('.json'));
+  for (const f of files) {
+    const d = readJson(path.join(dataDir, f), { clicks: {}, inputs: [] });
+    // Merge clicks
+    if (d.clicks) {
+      Object.assign(merged.clicks, d.clicks);
+    }
+    // Merge inputs
+    if (d.inputs) {
+      merged.inputs = merged.inputs.concat(d.inputs);
+    }
+  }
+  return merged;
 }
 
 function getLocalHourKey() {
@@ -168,10 +198,11 @@ function getLocalHourKey() {
 }
 
 ipcMain.on('mascot-clicked', () => {
-  const data = loadData();
+  const date = new Date();
+  const data = loadDataForDate(date);
   const hourKey = getLocalHourKey();
   data.clicks[hourKey] = (data.clicks[hourKey] || 0) + 1;
-  saveData(data);
+  saveDataForDate(data, date);
 });
 
 function getLocalTimeStr() {
@@ -181,9 +212,10 @@ function getLocalTimeStr() {
 }
 
 ipcMain.on('user-input-saved', (event, text) => {
-  const data = loadData();
+  const date = new Date();
+  const data = loadDataForDate(date);
   data.inputs.push({ time: getLocalTimeStr(), text });
-  saveData(data);
+  saveDataForDate(data, date);
 });
 
 // --- DASHBOARD & EDITOR WINDOWS ---
@@ -193,7 +225,7 @@ function createPanelWindow(file) {
     frame: false,
     webPreferences: { nodeIntegration: true, contextIsolation: false }
   });
-  win.loadFile(file);
+  win.loadFile(path.join(__dirname, file));
   return win;
 }
 
@@ -211,7 +243,7 @@ function openEditor() {
   editorWin.on('closed', () => { editorWin = null; });
 }
 
-ipcMain.handle('get-data', () => loadData());
+ipcMain.handle('get-data', () => loadAllData());
 ipcMain.handle('get-stopwords', () => loadStopWords());
 ipcMain.handle('save-stopwords', (event, list) => {
   try {
