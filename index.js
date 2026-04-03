@@ -43,16 +43,11 @@ function scanConfigs() {
 }
 
 function loadConfig(filePath) {
-  try {
-    const rawData = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(rawData);
-  } catch (err) {
-    return {
-      img_size: { width: 100, height: 100 },
-      img_path: "img.png",
-      dialogue: ["Error loading config"]
-    };
-  }
+  return readJson(filePath, {
+    img_size: { width: 100, height: 100 },
+    img_path: "img.png",
+    dialogue: ["Error loading config"]
+  });
 }
 
 // --- 2. WINDOW CREATION ---
@@ -139,24 +134,28 @@ app.on('before-quit', (e) => {
 const dataFilePath = path.join(getRootDir(), 'mascot_data.json');
 const stopWordsFilePath = path.join(getRootDir(), 'stopwords.json');
 
-function loadStopWords() {
+function readJson(filePath, defaultValue) {
   try {
-    return JSON.parse(fs.readFileSync(stopWordsFilePath, 'utf8'));
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
   } catch (e) {
-    return ["我", "你", "的", "了", "好"];
+    return defaultValue;
   }
+}
+
+function writeJson(filePath, data) {
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+}
+
+function loadStopWords() {
+  return readJson(stopWordsFilePath, ["我", "你", "的", "了", "好"]);
 }
 
 function loadData() {
-  try {
-    return JSON.parse(fs.readFileSync(dataFilePath, 'utf8'));
-  } catch (e) {
-    return { clicks: {}, inputs: [] };
-  }
+  return readJson(dataFilePath, { clicks: {}, inputs: [] });
 }
 
 function saveData(data) {
-  fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2), 'utf8');
+  writeJson(dataFilePath, data);
 }
 
 function getLocalHourKey() {
@@ -188,27 +187,27 @@ ipcMain.on('user-input-saved', (event, text) => {
 });
 
 // --- DASHBOARD & EDITOR WINDOWS ---
-let dashboardWin = null;
-function openDashboard() {
-  if (dashboardWin) { dashboardWin.focus(); return; }
-  dashboardWin = new BrowserWindow({
+function createPanelWindow(file) {
+  const win = new BrowserWindow({
     width: 600, height: 650,
     frame: false,
     webPreferences: { nodeIntegration: true, contextIsolation: false }
   });
-  dashboardWin.loadFile('dashboard.html');
+  win.loadFile(file);
+  return win;
+}
+
+let dashboardWin = null;
+function openDashboard() {
+  if (dashboardWin) { dashboardWin.focus(); return; }
+  dashboardWin = createPanelWindow('dashboard.html');
   dashboardWin.on('closed', () => { dashboardWin = null; });
 }
 
 let editorWin = null;
 function openEditor() {
   if (editorWin) { editorWin.focus(); return; }
-  editorWin = new BrowserWindow({
-    width: 600, height: 650,
-    frame: false,
-    webPreferences: { nodeIntegration: true, contextIsolation: false }
-  });
-  editorWin.loadFile('editor.html');
+  editorWin = createPanelWindow('editor.html');
   editorWin.on('closed', () => { editorWin = null; });
 }
 
@@ -216,7 +215,7 @@ ipcMain.handle('get-data', () => loadData());
 ipcMain.handle('get-stopwords', () => loadStopWords());
 ipcMain.handle('save-stopwords', (event, list) => {
   try {
-    fs.writeFileSync(stopWordsFilePath, JSON.stringify(list, null, 2), 'utf8');
+    writeJson(stopWordsFilePath, list);
     return true;
   } catch (e) { return false; }
 });
@@ -225,7 +224,7 @@ ipcMain.handle('get-current-config', () => {
 });
 ipcMain.handle('save-config', (event, { confPath, confData }) => {
   try {
-    fs.writeFileSync(confPath, JSON.stringify(confData, null, 2), 'utf8');
+    writeJson(confPath, confData);
     // Reload all main mascot windows
     BrowserWindow.getAllWindows().forEach(w => {
       if (w !== dashboardWin && w !== editorWin) w.reload();

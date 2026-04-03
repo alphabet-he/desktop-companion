@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <title>Dialogue Editor</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="panel-shared.css">
     <style>
         html {
             background-color: #a18cd1; /* Default background color */
@@ -22,40 +23,7 @@
             flex-direction: column;
         }
 
-        /* Frameless Title Bar */
-        #title-bar {
-            height: 32px;
-            background: rgba(0, 0, 0, 0.05);
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            -webkit-app-region: drag;
-            padding: 0 8px;
-            position: relative;
-            z-index: 10;
-            flex-shrink: 0;
-        }
 
-        #close-btn {
-            width: 14px;
-            height: 14px;
-            background: #ff5f57;
-            border-radius: 50%;
-            cursor: pointer;
-            -webkit-app-region: no-drag;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            color: transparent;
-            font-weight: 800;
-        }
-
-        #close-btn:hover {
-            color: rgba(100, 0, 0, 0.7);
-            background: #ff5f57;
-        }
 
         #content {
             padding: 25px;
@@ -65,33 +33,7 @@
             z-index: 1;
         }
 
-        /* Centered Background Image */
-        #bg-image-container {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: -1;
-            pointer-events: none;
-        }
 
-        #bg-image {
-            object-fit: contain;
-            opacity: 1; /* Configurable */
-        }
-
-        /* Glass layer */
-        #glass-layer {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(8px);
-            z-index: 0;
-        }
 
         h1 {
             font-size: 28px;
@@ -110,20 +52,7 @@
             font-weight: 500;
         }
 
-        .form-group {
-            background: rgba(255, 255, 255, 0.5);
-            padding: 20px;
-            border-radius: 20px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            margin-bottom: 20px;
-            backdrop-filter: blur(12px);
-            transition: transform 0.2s ease;
-        }
 
-        .form-group:hover {
-            transform: translateY(-2px);
-        }
 
         label {
             display: block;
@@ -254,54 +183,15 @@
     <script>
         const { ipcRenderer } = require('electron');
         const path = require('path');
+        const { applyPanelConfig } = require('./panel-config.js');
 
         let currentConfigPath = null;
         let configData = null;
 
         async function loadConfig() {
-            const result = await ipcRenderer.invoke('get-current-config');
-            currentConfigPath = result.path;
-            configData = result.data;
-
-            const panelConfig = configData.edit_dialogue_panel || {};
-
-            // 1. Set background color (on HTML so it stays visible during scroll)
-            if (panelConfig.panel_bg_color) {
-                document.documentElement.style.backgroundColor = panelConfig.panel_bg_color;
-            }
-
-            // 2. Set centered background image and size
-            if (panelConfig.panel_bg_image && currentConfigPath) {
-                const rootDir = path.dirname(currentConfigPath);
-                const fullImgPath = path.join(rootDir, panelConfig.panel_bg_image);
-                const bgImg = document.getElementById('bg-image');
-                bgImg.src = `file:///${fullImgPath.replace(/\\/g, '/')}`; // Support windows properly
-                bgImg.style.display = 'block';
-                
-                if (panelConfig.panel_bg_image_opacity !== undefined) {
-                    bgImg.style.opacity = panelConfig.panel_bg_image_opacity;
-                }
-
-                if (panelConfig.panel_bg_image_size) {
-                    // Support both object {width, height} and simple values
-                    if (typeof panelConfig.panel_bg_image_size === 'object') {
-                        if (panelConfig.panel_bg_image_size.width) bgImg.style.width = panelConfig.panel_bg_image_size.width + 'px';
-                        if (panelConfig.panel_bg_image_size.height) bgImg.style.height = panelConfig.panel_bg_image_size.height + 'px';
-                    } else {
-                        bgImg.style.width = typeof panelConfig.panel_bg_image_size === 'number' ? 
-                            panelConfig.panel_bg_image_size + 'px' : panelConfig.panel_bg_image_size;
-                    }
-                } else {
-                    bgImg.style.width = '200px'; // Default size
-                }
-            }
-
-            // 3. Customize Glass Layer
-            const glassLayer = document.getElementById('glass-layer');
-            if (panelConfig.glass_layer_blur !== undefined) {
-                const blurVal = typeof panelConfig.glass_layer_blur === 'number' ? `${panelConfig.glass_layer_blur}px` : panelConfig.glass_layer_blur;
-                glassLayer.style.backdropFilter = `blur(${blurVal})`;
-            }
+            const result = await applyPanelConfig('edit_dialogue_panel');
+            currentConfigPath = result.currentConfigPath;
+            configData = result.configData;
 
             document.getElementById('dialogue-startup').value = (configData.dialogue_startup || []).join('\n');
             document.getElementById('dialogue-normal').value = (configData.dialogue || []).join('\n');

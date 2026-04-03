@@ -6,6 +6,7 @@
     <title>Data Dashboard</title>
     <!-- Use Outfit font -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="panel-shared.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -30,37 +31,7 @@
             background: transparent;
         }
 
-        #title-bar {
-            height: 32px;
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            -webkit-app-region: drag;
-            padding: 0 12px;
-            flex-shrink: 0;
-            background: transparent;
-            z-index: 10;
-        }
 
-        #close-btn {
-            width: 14px;
-            height: 14px;
-            background: #ff5f57;
-            border-radius: 50%;
-            cursor: pointer;
-            -webkit-app-region: no-drag;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            color: transparent;
-            font-weight: 800;
-            transition: color 0.2s;
-        }
-
-        #close-btn:hover {
-            color: rgba(100, 0, 0, 0.7);
-        }
 
         #app {
             padding: 0 40px 30px;
@@ -74,34 +45,7 @@
             z-index: 1;
         }
 
-        #bg-image-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: -1;
-            pointer-events: none;
-        }
 
-        #bg-image {
-            object-fit: contain;
-            opacity: 1;
-        }
-
-        #glass-layer {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(8px);
-            z-index: 0;
-        }
 
         ::-webkit-scrollbar {
             width: 8px;
@@ -199,19 +143,8 @@
         }
 
         .card {
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 24px;
-            padding: 24px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            backdrop-filter: blur(12px);
             min-width: 0;
             overflow: hidden;
-            transition: transform 0.2s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-2px);
         }
 
         .stat-header {
@@ -442,20 +375,9 @@
         }
 
         .message-item {
-            background: rgba(255, 255, 255, 0.5);
-            padding: 24px;
-            border-radius: 20px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
             display: flex;
             flex-direction: column;
             gap: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            backdrop-filter: blur(12px);
-            transition: transform 0.2s ease;
-        }
-
-        .message-item:hover {
-            transform: translateY(-2px);
         }
 
         .msg-header {
@@ -639,6 +561,7 @@
     <script>
         const { ipcRenderer } = require('electron');
         const WordCloud = require('wordcloud');
+        const { applyPanelConfig } = require('./panel-config.js');
 
         let globalData = { clicks: {}, inputs: [] };
         let trendChartInst = null;
@@ -662,36 +585,7 @@
             const list = await ipcRenderer.invoke('get-stopwords');
             stopWordsSet = new Set(list);
 
-            const confResult = await ipcRenderer.invoke('get-current-config');
-            const currentConfigPath = confResult.path;
-            const configData = confResult.data;
-            const panelConfig = configData.dashboard_panel || {};
-
-            if (panelConfig.panel_bg_color) {
-                document.documentElement.style.backgroundColor = panelConfig.panel_bg_color;
-            }
-            if (panelConfig.panel_bg_image && currentConfigPath) {
-                const rootDir = require('path').dirname(currentConfigPath);
-                const fullImgPath = require('path').join(rootDir, panelConfig.panel_bg_image);
-                const bgImg = document.getElementById('bg-image');
-                bgImg.src = `file:///${fullImgPath.replace(/\\/g, '/')}`;
-                bgImg.style.display = 'block';
-
-                if (panelConfig.panel_bg_image_opacity !== undefined) bgImg.style.opacity = panelConfig.panel_bg_image_opacity;
-                if (panelConfig.panel_bg_image_size) {
-                    if (typeof panelConfig.panel_bg_image_size === 'object') {
-                        if (panelConfig.panel_bg_image_size.width) bgImg.style.width = panelConfig.panel_bg_image_size.width + 'px';
-                        if (panelConfig.panel_bg_image_size.height) bgImg.style.height = panelConfig.panel_bg_image_size.height + 'px';
-                    } else {
-                        bgImg.style.width = typeof panelConfig.panel_bg_image_size === 'number' ? panelConfig.panel_bg_image_size + 'px' : panelConfig.panel_bg_image_size;
-                    }
-                } else { bgImg.style.width = '200px'; }
-            }
-            const glassLayer = document.getElementById('glass-layer');
-            if (panelConfig.glass_layer_blur !== undefined) {
-                const blurVal = typeof panelConfig.glass_layer_blur === 'number' ? `${panelConfig.glass_layer_blur}px` : panelConfig.glass_layer_blur;
-                glassLayer.style.backdropFilter = `blur(${blurVal})`;
-            }
+            await applyPanelConfig('dashboard_panel');
 
             globalData = await ipcRenderer.invoke('get-data');
 
@@ -828,19 +722,17 @@
             renderOverviewWordCloud();
         }
 
-        function renderOverviewWordCloud(wordCnt = 40) {
+        function drawWordCloud(canvasId, containerId, inputs, wordCnt, sizeMultiplier, sizeOffset, gridSize, callback = null) {
             setTimeout(() => {
-                const wc = document.getElementById('wordcloud-canvas');
-                const container = document.getElementById('wordcloud-container');
+                const wc = document.getElementById(canvasId);
+                const container = document.getElementById(containerId);
                 const rect = container.getBoundingClientRect();
                 const dpr = window.devicePixelRatio || 1;
                 const cssW = Math.floor(rect.width);
                 const cssH = Math.floor(rect.height);
 
-                // Set the actual buffer size (high-res)
                 wc.width = cssW * dpr;
                 wc.height = cssH * dpr;
-                // Keep CSS size so layout isn't disrupted
                 wc.style.width = cssW + 'px';
                 wc.style.height = cssH + 'px';
 
@@ -849,7 +741,7 @@
                 let wordsMap = {};
                 const segmenter = new Intl.Segmenter(undefined, { granularity: 'word' });
 
-                globalData.inputs.forEach(inp => {
+                inputs.forEach(inp => {
                     const segments = segmenter.segment(inp.text);
                     for (const { segment, isWordLike } of segments) {
                         const isCJK = /[\u4e00-\u9fff\u3400-\u4dbf]/.test(segment);
@@ -859,7 +751,7 @@
                     }
                 });
 
-                let list = Object.keys(wordsMap).map(k => [k, wordsMap[k] * 12 + 16]);
+                let list = Object.keys(wordsMap).map(k => [k, wordsMap[k] * sizeMultiplier + sizeOffset]);
                 list.sort((a, b) => b[1] - a[1]);
                 list = list.slice(0, wordCnt);
 
@@ -876,11 +768,18 @@
                         rotateRatio: 0,
                         backgroundColor: 'transparent',
                         shrinkToFit: true,
-                        gridSize: 10
+                        gridSize: gridSize
                     });
                 } catch (e) { }
-                wordcloudDrawn = true;
+
+                if (callback) callback();
             }, 100);
+        }
+
+        function renderOverviewWordCloud(wordCnt = 40) {
+            drawWordCloud('wordcloud-canvas', 'wordcloud-container', globalData.inputs, wordCnt, 12, 16, 10, () => {
+                wordcloudDrawn = true;
+            });
         }
 
         window.addEventListener('resize', () => {
@@ -1138,55 +1037,7 @@
         }
 
         function renderNotebookWordCloud(filteredInputs) {
-            setTimeout(() => {
-                const wc = document.getElementById('nb-wordcloud-canvas');
-                const container = document.getElementById('nb-wordcloud-container');
-                const rect = container.getBoundingClientRect();
-                const dpr = window.devicePixelRatio || 1;
-                const cssW = Math.floor(rect.width);
-                const cssH = Math.floor(rect.height);
-
-                wc.width = cssW * dpr;
-                wc.height = cssH * dpr;
-                wc.style.width = cssW + 'px';
-                wc.style.height = cssH + 'px';
-
-                if (wc.width === 0 || wc.height === 0) return;
-
-                let wordsMap = {};
-                const segmenter = new Intl.Segmenter(undefined, { granularity: 'word' });
-
-                filteredInputs.forEach(inp => {
-                    const segments = segmenter.segment(inp.text);
-                    for (const { segment, isWordLike } of segments) {
-                        const isCJK = /[\u4e00-\u9fff\u3400-\u4dbf]/.test(segment);
-                        if (isWordLike && !stopWordsSet.has(segment) && (segment.length >= 2 || isCJK)) {
-                            wordsMap[segment] = (wordsMap[segment] || 0) + 1;
-                        }
-                    }
-                });
-
-                let list = Object.keys(wordsMap).map(k => [k, wordsMap[k] * 8 + 10]);
-                list.sort((a, b) => b[1] - a[1]);
-                list = list.slice(0, 20);
-
-                if (list.length === 0) list = [['No data', 30]];
-
-                const colors = ['#f66d6d', '#ecaf66', '#8ab498', '#7ba1c2', '#bd9fb7'];
-
-                try {
-                    WordCloud(wc, {
-                        list: list,
-                        fontFamily: 'Outfit, sans-serif',
-                        fontWeight: 700,
-                        color: () => colors[Math.floor(Math.random() * colors.length)],
-                        rotateRatio: 0,
-                        backgroundColor: 'transparent',
-                        shrinkToFit: true,
-                        gridSize: 8
-                    });
-                } catch (e) { }
-            }, 100);
+            drawWordCloud('nb-wordcloud-canvas', 'nb-wordcloud-container', filteredInputs, 20, 8, 10, 8);
         }
 
         init();
