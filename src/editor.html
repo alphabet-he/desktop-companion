@@ -17,16 +17,19 @@
             padding: 0;
             background-color: transparent;
             color: #333;
-            min-height: 100vh;
+            height: 100vh;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
 
         #content {
             padding: 25px;
             flex-grow: 1;
             overflow-y: auto;
+            height: calc(100vh - 32px);
+            box-sizing: border-box;
             position: relative;
             z-index: 1;
         }
@@ -85,6 +88,7 @@
         }
 
         * {
+            box-sizing: border-box;
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
